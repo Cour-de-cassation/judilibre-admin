@@ -7,9 +7,9 @@ const route = 'import';
 api.post(`/${route}/:query`, async (req, res) => {
   try {
     const result = await postImport(req.params.query);
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (e) {
-    res.status(500).json({ route: route, message: 'Internal Server Error', error: e.message });
+    return res.status(500).json({ errors: [{ location: route, msg: 'Internal Server Error', error: e.message }] });
   }
 });
 
@@ -23,7 +23,7 @@ async function postImport(query) {
 module.exports = api;
 
 /*
-var indexationStatus = 500
+    var indexationStatus = 500
     if (req.body) {
       var index = req.body.index
       var decision = req.body.document
@@ -35,4 +35,143 @@ var indexationStatus = 500
       }
     }
     res.sendStatus(indexationStatus)
+*/
+/*
+async function indexDecision(index, decision) {
+	const document = {}
+	try {
+		const zones = decision.zoning
+		document.mongoId = decision._id
+		document.version = decision._version
+		document.sourceId = decision.sourceId
+		document.sourceName = decision.sourceName.toLowerCase()
+		document.zoning = decision.zoning
+		if (decision.jurisdictionCode) {
+			document.jurisdictionCode = decision.jurisdictionCode.toUpperCase()
+		}
+		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['juridiction']) {
+			document.jurisdictionName = zones['introduction_subzonage']['juridiction']
+		}
+		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['pourvoi'] && zones['introduction_subzonage']['pourvoi'].length && zones['introduction_subzonage']['pourvoi'][0]) {
+			let cleanedAppealNumber = zones['introduction_subzonage']['pourvoi'][0].split(/^\w\s/)[1]
+			if (cleanedAppealNumber) {
+				document.appealNumberFull = cleanedAppealNumber 
+				document.appealNumber = cleanedAppealNumber.replace(/[^\w\d]/gm, '').trim() 
+			}
+		}
+		if (decision.chamberId) {
+			document.chamberId = decision.chamberId.toUpperCase()
+		}
+		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['chambre']) {
+			document.chamberName = zones['introduction_subzonage']['chambre']
+		}
+		if (decision.registerNumber) {
+			document.registerNumber = decision.registerNumber
+		}
+		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['formation']) {
+			document.formation = zones['introduction_subzonage']['formation'].toUpperCase()
+		}
+		/ *
+		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['publication']) {
+			document.pubCategory = zones['introduction_subzonage']['publication']
+		}
+		* /
+		if (decision.pubCategory) {
+			document.pubCategory = decision.pubCategory.toUpperCase()
+		}
+		const dDecision = new Date(decision.dateDecision)
+		let day = dDecision.getDate()
+		if (day < 10) {
+			day = '0' + day
+		}
+		let month = dDecision.getMonth() + 1
+		if (month < 10) {
+			month = '0' + month
+		}
+		document.dateDecision = day + '/' + month + '/' + dDecision.getFullYear()
+		if (decision.solution) {
+			document.solution = decision.solution
+		}
+		document.fulltext = decision.pseudoText
+		document.zoneExpose = []
+		if (zones['zones'] && zones['zones']['expose du litige'] && zones['zones']['expose du litige'].length) {
+			for (let i = 0; i < zones['zones']['expose du litige'].length; i++) {
+				let start = zones['zones']['expose du litige'][i].start
+				let end = zones['zones']['expose du litige'][i].end
+				document.zoneExpose.push(decision.pseudoText.substring(start, end).trim())
+			}
+		} else if (zones['zones'] && zones['zones']['expose du litige'] && zones['zones']['expose du litige'].start && zones['zones']['expose du litige'].end) {
+			let start = zones['zones']['expose du litige'].start
+			let end = zones['zones']['expose du litige'].end
+			document.zoneExpose.push(decision.pseudoText.substring(start, end).trim())
+		}
+		document.zoneMoyens = []
+		if (zones['zones'] && zones['zones']['moyens'] && zones['zones']['moyens'].length) {
+			for (let i = 0; i < zones['zones']['moyens'].length; i++) {
+				let start = zones['zones']['moyens'][i].start
+				let end = zones['zones']['moyens'][i].end
+				document.zoneMoyens.push(decision.pseudoText.substring(start, end).trim())
+			}
+		} else if (zones['zones'] && zones['zones']['moyens'] && zones['zones']['moyens'].start && zones['zones']['moyens'].end) {
+			let start = zones['zones']['moyens'].start
+			let end = zones['zones']['moyens'].end
+			document.zoneMoyens.push(decision.pseudoText.substring(start, end).trim())
+		}
+		document.zoneMotivation = []
+		if (zones['zones'] && zones['zones']['motivations'] && zones['zones']['motivations'].length) {
+			for (let i = 0; i < zones['zones']['motivations'].length; i++) {
+				let start = zones['zones']['motivations'][i].start
+				let end = zones['zones']['motivations'][i].end
+				document.zoneMotivation.push(decision.pseudoText.substring(start, end).trim())
+			}
+		} else if (zones['zones'] && zones['zones']['motivations'] && zones['zones']['motivations'].start && zones['zones']['motivations'].end) {
+			let start = zones['zones']['motivations'].start
+			let end = zones['zones']['motivations'].end
+			document.zoneMotivation.push(decision.pseudoText.substring(start, end).trim())
+		}
+		document.zoneDispositif = []
+		if (zones['zones'] && zones['zones']['dispositif'] && zones['zones']['dispositif'].length) {
+			for (let i = 0; i < zones['zones']['dispositif'].length; i++) {
+				let start = zones['zones']['dispositif'][i].start
+				let end = zones['zones']['dispositif'][i].end
+				document.zoneDispositif.push(decision.pseudoText.substring(start, end).trim())
+			}
+		} else if (zones['zones'] && zones['zones']['dispositif'] && zones['zones']['dispositif'].start && zones['zones']['dispositif'].end) {
+			let start = zones['zones']['dispositif'].start
+			let end = zones['zones']['dispositif'].end
+			document.zoneDispositif.push(decision.pseudoText.substring(start, end).trim())
+		}
+		document.zoneAnnexes = []
+		if (zones['zones'] && zones['zones']['moyens annexes'] && zones['zones']['moyens annexes'].length) {
+			for (let i = 0; i < zones['zones']['moyens annexes'].length; i++) {
+				let start = zones['zones']['moyens annexes'][i].start
+				let end = zones['zones']['moyens annexes'][i].end
+				document.zoneAnnexes.push(decision.pseudoText.substring(start, end).trim())
+			}
+		} else if (zones['zones'] && zones['zones']['moyens annexes'] && zones['zones']['moyens annexes'].start && zones['zones']['moyens annexes'].end) {
+			let start = zones['zones']['moyens annexes'].start
+			let end = zones['zones']['moyens annexes'].end
+			document.zoneAnnexes.push(decision.pseudoText.substring(start, end).trim())
+		}
+		if (decision.analysis) {
+			if (decision.analysis.summary) {
+				document.summary = decision.analysis.summary
+			}
+			if (decision.analysis.title) {
+				document.title = decision.analysis.title
+			}
+		}
+		if (zones['visa'] !== null) {
+			document.visa = zones['visa']
+		}
+		const repindex = await client.index({
+			id: decision._id,
+			index: index,
+			body: document
+		})
+		return true
+	} catch (e) {
+		return false
+	}
+}
 */

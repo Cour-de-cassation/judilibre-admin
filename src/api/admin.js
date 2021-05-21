@@ -7,9 +7,9 @@ const route = 'admin';
 api.get(`/${route}/:query`, async (req, res) => {
   try {
     const result = await getAdmin(req.params.query);
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (e) {
-    res.status(500).json({ route: route, message: 'Internal Server Error', error: e.message });
+    return res.status(500).json({ errors: [{ location: route, msg: 'Internal Server Error', error: e.message }] });
   }
 });
 
