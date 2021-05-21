@@ -1,21 +1,52 @@
 require('../modules/env');
 const express = require('express');
 const api = express.Router();
-const Elastic = require('../modules/elastic');
+const { checkSchema, validationResult } = require('express-validator');
+// const Elastic = require('../modules/elastic');
 const route = 'import';
 
-api.post(`/${route}`, async (req, res) => {
-  try {
-    const result = await postImport(req.body);
-    return res.status(200).json(result);
-  } catch (e) {
-    return res.status(500).json({ errors: [{ route: route, msg: 'Internal Server Error', error: e.message }] });
-  }
-});
+api.post(
+  `/${route}`,
+  checkSchema({
+    id: {
+      in: 'body',
+      isString: true,
+      errorMessage: `Request has no id.`,
+      optional: false,
+    },
+    decisions: {
+      in: 'body',
+      isArray: true,
+      notEmpty: true,
+      errorMessage: `Request has no decision.`,
+      optional: false,
+    },
+    'decisions.*.id': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no id.`,
+      optional: false,
+    },
+  }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ route: `${req.method} ${req.path}`, errors: errors.array() });
+    }
+    try {
+      const result = await postImport(req.body);
+      return res.status(200).json(result);
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ route: `${req.method} ${req.path}`, errors: [{ msg: 'Internal Server Error', error: e.message }] });
+    }
+  },
+);
 
 async function postImport(query) {
   return {
-    route: route,
+    route: `POST /${route}`,
     query: query,
   };
 }
@@ -55,8 +86,8 @@ async function indexDecision(index, decision) {
 		if (zones['introduction_subzonage'] && zones['introduction_subzonage']['pourvoi'] && zones['introduction_subzonage']['pourvoi'].length && zones['introduction_subzonage']['pourvoi'][0]) {
 			let cleanedAppealNumber = zones['introduction_subzonage']['pourvoi'][0].split(/^\w\s/)[1]
 			if (cleanedAppealNumber) {
-				document.appealNumberFull = cleanedAppealNumber 
-				document.appealNumber = cleanedAppealNumber.replace(/[^\w\d]/gm, '').trim() 
+				document.appealNumberFull = cleanedAppealNumber
+				document.appealNumber = cleanedAppealNumber.replace(/[^\w\d]/gm, '').trim()
 			}
 		}
 		if (decision.chamberId) {
