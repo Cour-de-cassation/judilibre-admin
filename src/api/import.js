@@ -4,9 +4,9 @@ const api = express.Router();
 const Elastic = require('../modules/elastic');
 const route = 'import';
 
-api.post(`/${route}/:query`, async (req, res) => {
+api.post(`/${route}`, async (req, res) => {
   try {
-    const result = await postImport(req.params.query);
+    const result = await postImport(req.body);
     return res.status(200).json(result);
   } catch (e) {
     return res.status(500).json({ errors: [{ location: route, msg: 'Internal Server Error', error: e.message }] });
@@ -15,7 +15,7 @@ api.post(`/${route}/:query`, async (req, res) => {
 
 async function postImport(query) {
   return {
-    route: route,
+    location: route,
     query: query,
   };
 }
