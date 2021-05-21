@@ -27,6 +27,24 @@ api.post(
       errorMessage: `Decision has no id.`,
       optional: false,
     },
+    'decisions.*.text': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no text.`,
+      optional: false,
+    },
+    'decisions.*.creation_date': {
+      in: 'body',
+      isISO8601: true,
+      errorMessage: `Decision has no creation date.`,
+      optional: false,
+    },
+    'decisions.*.zones': {
+      in: 'body',
+      isObject: true,
+      errorMessage: `Decision has no zones.`,
+      optional: false,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
