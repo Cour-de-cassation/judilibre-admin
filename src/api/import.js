@@ -21,16 +21,10 @@ api.post(
       errorMessage: `Request has no decision.`,
       optional: false,
     },
-    'decisions.*.id': {
+    'decisions.*.chamber': {
       in: 'body',
       isString: true,
-      errorMessage: `Decision has no id.`,
-      optional: false,
-    },
-    'decisions.*.text': {
-      in: 'body',
-      isString: true,
-      errorMessage: `Decision has no text.`,
+      errorMessage: `Decision has no chamber.`,
       optional: false,
     },
     'decisions.*.creation_date': {
@@ -39,10 +33,52 @@ api.post(
       errorMessage: `Decision has no creation date.`,
       optional: false,
     },
-    'decisions.*.zones': {
+    'decisions.*.ecli': {
       in: 'body',
-      isObject: true,
-      errorMessage: `Decision has no zones.`,
+      isString: true,
+      errorMessage: `Decision has no ECLI.`,
+      optional: false,
+    },
+    'decisions.*.formation': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no formation.`,
+      optional: false,
+    },
+    'decisions.*.id': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no id.`,
+      optional: false,
+    },
+    'decisions.*.jurisdiction': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no jurisdiction.`,
+      optional: false,
+    },
+    'decisions.*.number': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no number.`,
+      optional: false,
+    },
+    'decisions.*.publication': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no publication.`,
+      optional: false,
+    },
+    'decisions.*.solution': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no solution.`,
+      optional: false,
+    },
+    'decisions.*.text': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no text.`,
       optional: false,
     },
   }),
