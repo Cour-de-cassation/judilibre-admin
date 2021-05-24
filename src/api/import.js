@@ -89,6 +89,12 @@ api.post(
     }
     try {
       const result = await postImport(req.body);
+      if (result.errors) {
+        return res.status(400).json({
+          route: `${req.method} ${req.path}`,
+          errors: result.errors,
+        });
+      }
       return res.status(200).json(result);
     } catch (e) {
       return res
