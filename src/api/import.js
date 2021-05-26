@@ -81,6 +81,36 @@ api.post(
       errorMessage: `Decision has no text.`,
       optional: false,
     },
+    'decisions.*.zones': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.zone must be an array.`,
+      optional: true,
+    },
+    'decisions.*.nac': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.nac must be a string.`,
+      optional: true,
+    },
+    'decisions.*.update_date': {
+      in: 'body',
+      isISO8601: true,
+      errorMessage: `Decision.update_date must be a ISO-8601 date (e.g. 2021-05-13).`,
+      optional: true,
+    },
+    'decisions.*.applied': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.applied must be an array.`,
+      optional: true,
+    },
+    'decisions.*.rapprochements': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.rapprochements must be an array.`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
