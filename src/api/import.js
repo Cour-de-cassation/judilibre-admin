@@ -111,6 +111,33 @@ api.post(
       errorMessage: `Decision.rapprochements must be an array.`,
       optional: true,
     },
+    'decisions.*.solution_alt': {
+      in: 'body',
+      isString: true,
+      optional: true,
+    },
+    'decisions.*.summary': {
+      in: 'body',
+      isString: true,
+      optional: true,
+    },
+    'decisions.*.bulletin': {
+      in: 'body',
+      isString: true,
+      optional: true,
+    },
+    'decisions.*.files': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.files must be an array.`,
+      optional: true,
+    },
+    'decisions.*.themes': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.themes must be an array.`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
