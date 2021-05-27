@@ -39,12 +39,6 @@ api.post(
       errorMessage: `Decision has no ECLI.`,
       optional: false,
     },
-    'decisions.*.formation': {
-      in: 'body',
-      isString: true,
-      errorMessage: `Decision has no formation.`,
-      optional: false,
-    },
     'decisions.*.id': {
       in: 'body',
       isString: true,
@@ -80,6 +74,12 @@ api.post(
       isString: true,
       errorMessage: `Decision has no text.`,
       optional: false,
+    },
+    'decisions.*.formation': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.formation must be a string.`,
+      optional: true,
     },
     'decisions.*.zones': {
       in: 'body',
