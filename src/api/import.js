@@ -59,8 +59,13 @@ api.post(
     },
     'decisions.*.publication': {
       in: 'body',
+      toArray: true,
+    },
+    'decisions.*.publication.*': {
+      in: 'body',
       isString: true,
-      errorMessage: `Decision has no publication.`,
+      toLowerCase: true,
+      errorMessage: `Decision.publication must be an array of strings.`,
       optional: false,
     },
     'decisions.*.solution': {
