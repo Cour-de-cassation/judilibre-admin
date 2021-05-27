@@ -27,10 +27,10 @@ api.post(
       errorMessage: `Decision has no chamber.`,
       optional: false,
     },
-    'decisions.*.creation_date': {
+    'decisions.*.decision_date': {
       in: 'body',
       isISO8601: true,
-      errorMessage: `Decision has no creation date.`,
+      errorMessage: `Decision has no date.`,
       optional: false,
     },
     'decisions.*.ecli': {
