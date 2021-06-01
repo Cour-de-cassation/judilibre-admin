@@ -49,7 +49,7 @@
           "filter": ["french_elision", "asciifolding", "lowercase", "french_stop"]
         },
         "exact_french": {
-          "tokenizer": "keyword",
+          "tokenizer": "standard",
           "filter": ["lowercase"]
         }
       }
