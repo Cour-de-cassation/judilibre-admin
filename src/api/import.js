@@ -229,7 +229,7 @@ async function indexDecision(decision) {
   document.numberFull = decision.number;
   document.publication = decision.publication;
   document.solution = decision.solution;
-  /*
+  /* poc remains (wip)
   if (zones['introduction_subzonage']['juridiction']) {
     document.jurisdictionName = zones['introduction_subzonage']['juridiction']
   }
@@ -273,10 +273,10 @@ async function indexDecision(decision) {
   if (decision.zones) {
     document.zones = decision.zones;
     document.zoneExpose = [];
-    if (decision.zones['expose du litige']) {
-      for (let i = 0; i < decision.zones['expose du litige'].length; i++) {
-        let start = decision.zones['expose du litige'][i].start;
-        let end = decision.zones['expose du litige'][i].end;
+    if (decision.zones['expose']) {
+      for (let i = 0; i < decision.zones['expose'].length; i++) {
+        let start = decision.zones['expose'][i].start;
+        let end = decision.zones['expose'][i].end;
         document.zoneExpose.push(decision.text.substring(start, end).trim());
       }
     }
@@ -305,10 +305,10 @@ async function indexDecision(decision) {
       }
     }
     document.zoneAnnexes = [];
-    if (decision.zones['moyens annexes']) {
-      for (let i = 0; i < decision.zones['moyens annexes'].length; i++) {
-        let start = decision.zones['moyens annexes'][i].start;
-        let end = decision.zones['moyens annexes'][i].end;
+    if (decision.zones['annexes']) {
+      for (let i = 0; i < decision.zones['annexes'].length; i++) {
+        let start = decision.zones['annexes'][i].start;
+        let end = decision.zones['annexes'][i].end;
         document.zoneAnnexes.push(decision.text.substring(start, end).trim());
       }
     }
