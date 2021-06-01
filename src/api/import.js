@@ -47,7 +47,7 @@ api.post(
     },
     'decisions.*.version': {
       in: 'body',
-      isInt: true,
+      isFloat: true,
       errorMessage: `Decision has no version number.`,
       optional: false,
     },
@@ -185,11 +185,12 @@ api.post(
 );
 
 async function postImport(query) {
-  const response = {
+  let response = {
     indexed: [],
     not_indexed: [],
   };
-  query.decisions.array.forEach(async (decision) => {
+  for (let i = 0; i < query.decisions.length; i++) {
+    const decision = query.decisions[i];
     try {
       const result = await indexDecision(decision);
       if (result.indexed) {
@@ -204,12 +205,12 @@ async function postImport(query) {
       );
       console.error(e);
     }
-  });
+  }
   return response;
 }
 
 async function indexDecision(decision) {
-  const document = {};
+  let document = {};
   document.version = decision.version;
   document.source = decision.source;
   document.text = decision.text;
