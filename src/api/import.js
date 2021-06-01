@@ -193,7 +193,7 @@ async function postImport(query) {
     const decision = query.decisions[i];
     try {
       const result = await indexDecision(decision);
-      if (result.indexed) {
+      if (result === true) {
         response.indexed.push(decision.sourceId);
       } else {
         response.not_indexed.push(decision.sourceId);
