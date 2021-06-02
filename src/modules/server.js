@@ -1,12 +1,10 @@
 require('./env');
 const path = require('path');
 const express = require('express');
-const cors = require('cors');
 
 class Server {
   constructor() {
     this.app = express();
-    this.app.use(cors());
     this.app.use(express.json({ limit: '50mb' }));
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.static(path.join(__dirname, '..', '..', 'public')));
