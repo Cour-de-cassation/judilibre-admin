@@ -1,39 +1,10 @@
 #!/bin/bash
 
-#set up services to start
-if [ -z "${APP_DNS}" ]; then
-        #assume local kube conf (minikube or k3s)
-        K8S_SERVICES="namespace elasticsearch service deployment ingress-local loadbalancer-local";
-        (kubectl version > /dev/null 2>&1) || (sudo sleep 0 && (curl -sfL https://get.k3s.io | sh - 2>&1 |\
-                awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️  Installed k3s");
-        mkdir -p ~/.kube && (sudo cat /etc/rancher/k3s/k3s.yaml > ${HOME}/.kube/config-local-k3s.yaml);
-        export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
-        sudo k3s ctr images check | grep -q ${DOCKER_USERNAME}/${APP_ID}:${VERSION} || \
-                (./scripts/docker-build.sh; \
-                docker save ${DOCKER_USERNAME}/${APP_ID}:${VERSION}  --output /tmp/img.tar;
-                sudo k3s ctr image import /tmp/img.tar > /dev/null 2>&1;
-                echo -e "^\e[1A\e[K\r🐋  Docker image imported to k3s";
-                rm /tmp/img.tar);
-else
-        K8S_SERVICES="namespace elasticsearch service deployment certificate ingressroute loadbalancer-traefik"
-fi;
-
-
-
-export OS_TYPE=$(cat /etc/os-release | grep -E '^NAME=' | sed 's/^.*debian.*$/DEB/I;s/^.*ubuntu.*$/DEB/I;s/^.*fedora.*$/RPM/I;s/.*centos.*$/RPM/I;')
-
 if [ -z "${VERSION}" ];then\
         export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
 fi
 
-if [ ! -f "/usr/bin/envsubst" ]; then
-        if [ "${OS_TYPE}" = "DEB" ]; then
-                apt-get install -yqq gettext;
-        fi;
-        if [ "${OS_TYPE}" = "RPM" ]; then
-                sudo yum install -y gettext;
-        fi;
-fi;
+export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
 if [ -z "${KUBECTL}" ]; then
         if [ ! -f "$(which kubectl)" ]; then
@@ -44,6 +15,59 @@ if [ -z "${KUBECTL}" ]; then
                 export export KUBECTL=$(which kubectl)
         fi;
 fi
+
+#set up services to start
+if [ -z "${APP_DNS}" ]; then
+        #assume local kube conf (minikube or k3s)
+        K8S_SERVICES="namespace elasticsearch service deployment ingress-local";
+        if ! (${KUBECTL} version 2>&1 | grep -q Server); then
+                if [ -z "${K8S}" ]; then
+                        # prefer k3s for velocity of install and startup in CI
+                        export K8S=k3s;
+                fi;
+
+                if [ "${K8S}" = "k3s" ]; then
+                        if ! (which k3s); then
+                                (curl -sfL https://get.k3s.io | sh - 2>&1 |\
+                                        awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️  Installed k3s";
+                        fi;
+                        mkdir -p ~/.kube;
+                        export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
+                        sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
+                        sudo chown ${USER} ${KUBECONFIG};
+                        if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
+                                ./scripts/docker-build.sh;
+                                docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
+                                (sudo k3s ctr image import /tmp/img.tar > /dev/null 2>&1);
+                                echo -e "⤵️  Docker image imported to k3s";
+                                rm /tmp/img.tar;
+                        fi;
+                fi;
+
+                if [ "${K8S}" = "minikube" ]; then
+                        minikube start;
+                        if ! (minikube image list | grep -q ${DOCKER_IMAGE}); then
+                                ./scripts/docker-build.sh;
+                                (minikube image load ${DOCKER_IMAGE} > /dev/null 2>&1);
+                                echo -e "⤵️  Docker image imported to minikube";
+                        fi;
+                fi;
+        fi;
+else
+        K8S_SERVICES="namespace elasticsearch service deployment certificate ingressroute loadbalancer-traefik"
+fi;
+
+export OS_TYPE=$(cat /etc/os-release | grep -E '^NAME=' | sed 's/^.*debian.*$/DEB/I;s/^.*ubuntu.*$/DEB/I;s/^.*fedora.*$/RPM/I;s/.*centos.*$/RPM/I;')
+
+
+if [ ! -f "/usr/bin/envsubst" ]; then
+        if [ "${OS_TYPE}" = "DEB" ]; then
+                apt-get install -yqq gettext;
+        fi;
+        if [ "${OS_TYPE}" = "RPM" ]; then
+                sudo yum install -y gettext;
+        fi;
+fi;
 
 #install elasticsearch kube controller
 (${KUBECTL} get elasticsearch > /dev/null 2>&1 && echo "✓   elasticsearch k8s controller") \
@@ -60,17 +84,4 @@ for resource in ${K8S_SERVICES}; do
         if [ "$?" -ne "0" ]; then exit 1;fi;
 done;
 
-# wait for k8s pods to be ready
-timeout=${START_TIMEOUT} ; ret=0 ;\
-until [ "$timeout" -le 0 -o "$ret" -eq "1" ] ; do\
-        ( ${KUBECTL} get pod --namespace=${APP_GROUP} | egrep "${APP_ID}|${APP_GROUP}-es" | grep -q '0/1' );\
-        ret=$? ; \
-        if [ "$ret" -ne "1" ] ; then echo -en "\r\033[2KWait for service ${APP_ID} to be ready ... $timeout" ; fi ;\
-        ((timeout--)); sleep 1 ; \
-done ;
-
-if [ "$ret" -ne "1" ];then
-        (echo -en "\r\033[2K\e[31m❌  all service are not ready !\e[0m\n" && ${KUBECTL} get pod --namespace=${APP_GROUP} && exit 1)
-else
-        (echo -en "\r\033[2K✅  All resources are ready !\n")
-fi;
+./scripts/wait_services_readiness.sh || exit 1;
