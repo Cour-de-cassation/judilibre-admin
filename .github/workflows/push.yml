@@ -18,7 +18,7 @@ jobs:
       ELASTIC_NODES: 1
       ELASTIC_INDEX: judilibre_0
       ELASTIC_MEM: 512m
-      START_TIMEOUT: 60
+      START_TIMEOUT: 120
       K8S: k3s
     steps:
       - uses: actions/checkout@v1
