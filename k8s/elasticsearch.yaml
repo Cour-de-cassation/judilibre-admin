@@ -18,14 +18,21 @@ spec:
             privileged: true
           command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
         containers:
-          - name: elasticsearch
-            env:
-            - name: ES_JAVA_OPTS
-              value: -Xms${ELASTIC_MEM} -Xmx${ELASTIC_MEM}
-            readinessProbe:
-              httpGet:
-                path: /_cluster/health?local=true
-                port: 9200
-                scheme: HTTP
-              initialDelaySeconds: 3
-              periodSeconds: 3
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms${ELASTIC_MEM} -Xmx${ELASTIC_MEM}
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?local=true
+              port: 9200
+              scheme: HTTP
+            periodSeconds: 3
+            initialDelaySeconds: 3
+          volumeMounts:
+          - name: stopwords
+            mountPath: /usr/share/elasticsearch/config/analysis/
+        volumes:
+        - name: stopwords
+          configMap:
+            name: ${APP_GROUP}-stopwords

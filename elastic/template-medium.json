@@ -1,0 +1,153 @@
+{
+  "index_patterns": ["judilibre", "judilibre_*"],
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "filter": {
+        "french_elision": {
+          "type": "elision",
+          "articles_case": true,
+          "articles": ["l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu"]
+        },
+        "french_stop": {
+          "type": "stop",
+          "stopwords": "_french_"
+        },
+        "custom_stop": {
+          "type": "stop",
+          "stopwords_path": "analysis/stopwords_judilibre.txt"
+        },
+        "french_stemmer": {
+          "type": "stemmer",
+          "language": "light_french"
+        }
+      },
+      "analyzer": {
+        "medium_french": {
+          "tokenizer": "standard",
+          "filter": ["french_elision", "asciifolding", "lowercase", "french_stop", "custom_stop", "french_stemmer"]
+        },
+        "light_french": {
+          "tokenizer": "standard",
+          "filter": ["french_elision", "asciifolding", "lowercase", "french_stop"]
+        },
+        "exact_french": {
+          "tokenizer": "standard",
+          "filter": ["lowercase"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword",
+        "index": false
+      },
+      "version": {
+        "type": "keyword",
+        "index": false
+      },
+      "source": {
+        "type": "keyword"
+      },
+      "jurisdiction": {
+        "type": "keyword"
+      },
+      "chamber": {
+        "type": "keyword"
+      },
+      "number": {
+        "type": "keyword"
+      },
+      "numberFull": {
+        "type": "keyword",
+        "index": false
+      },
+      "ecli": {
+        "type": "keyword"
+      },
+      "nac": {
+        "type": "keyword"
+      },
+      "formation": {
+        "type": "keyword"
+      },
+      "publication": {
+        "type": "keyword"
+      },
+      "decision_date": {
+        "type": "date",
+        "format": "yyyy-MM-dd"
+      },
+      "update_date": {
+        "type": "date",
+        "format": "yyyy-MM-dd"
+      },
+      "solution": {
+        "type": "keyword"
+      },
+      "solution_alt": {
+        "type": "text",
+        "analyzer": "light_french"
+      },
+      "text": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "textExact": {
+        "type": "text",
+        "analyzer": "exact_french"
+      },
+      "zoneExpose": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "zoneMoyens": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "zoneMotivations": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "zoneDispositif": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "zoneAnnexes": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "themes": {
+        "type": "text",
+        "analyzer": "light_french"
+      },
+      "summary": {
+        "type": "text",
+        "analyzer": "medium_french"
+      },
+      "applied": {
+        "type": "text",
+        "analyzer": "light_french"
+      },
+      "bulletin": {
+        "type": "keyword"
+      },
+      "rapprochements": {
+        "type": "text",
+        "analyzer": "light_french",
+        "index": false
+      },
+      "files": {
+        "type": "flattened",
+        "index": false
+      },
+      "zones": {
+        "type": "flattened",
+        "index": false
+      }
+    }
+  }
+}
