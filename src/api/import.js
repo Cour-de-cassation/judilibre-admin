@@ -189,26 +189,28 @@ async function postImport(query) {
     indexed: [],
     not_indexed: [],
   };
-  for (let i = 0; i < query.decisions.length; i++) {
-    const decision = query.decisions[i];
-    try {
-      const result = await indexDecision(decision);
-      if (result === true) {
-        response.indexed.push(decision.sourceId);
-      } else {
+  if (query && query.decisions && Array.isArray(query.decisions) && query.decisions.length) {
+    for (let i = 0; i < query.decisions.length; i++) {
+      const decision = query.decisions[i];
+      try {
+        const result = await indexDecision(decision);
+        if (result === true) {
+          response.indexed.push(decision.sourceId);
+        } else {
+          response.not_indexed.push(decision.sourceId);
+        }
+      } catch (e) {
         response.not_indexed.push(decision.sourceId);
+        console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.sourceId}`);
+        console.error(e);
       }
+    }
+    try {
+      await Elastic.client.indices.refresh({ index: process.env.ELASTIC_INDEX });
     } catch (e) {
-      response.not_indexed.push(decision.sourceId);
-      console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.sourceId}`);
+      console.error(`${process.env.APP_ID}: Error in '${route}' API while refreshing indices.`);
       console.error(e);
     }
-  }
-  try {
-    await Elastic.client.indices.refresh({ index: process.env.ELASTIC_INDEX });
-  } catch (e) {
-    console.error(`${process.env.APP_ID}: Error in '${route}' API while refreshing indices.`);
-    console.error(e);
   }
   return response;
 }
@@ -271,7 +273,7 @@ async function indexDecision(decision) {
   if (decision.zones) {
     document.zones = decision.zones;
     document.zoneExpose = [];
-    if (decision.zones['expose']) {
+    if (decision.zones['expose'] && Array.isArray(decision.zones['expose']) && decision.zones['expose'].length) {
       for (let i = 0; i < decision.zones['expose'].length; i++) {
         let start = decision.zones['expose'][i].start;
         let end = decision.zones['expose'][i].end;
@@ -279,7 +281,7 @@ async function indexDecision(decision) {
       }
     }
     document.zoneMoyens = [];
-    if (decision.zones['moyens']) {
+    if (decision.zones['moyens'] && Array.isArray(decision.zones['moyens']) && decision.zones['moyens'].length) {
       for (let i = 0; i < decision.zones['moyens'].length; i++) {
         let start = decision.zones['moyens'][i].start;
         let end = decision.zones['moyens'][i].end;
@@ -287,7 +289,11 @@ async function indexDecision(decision) {
       }
     }
     document.zoneMotivations = [];
-    if (decision.zones['motivations']) {
+    if (
+      decision.zones['motivations'] &&
+      Array.isArray(decision.zones['motivations']) &&
+      decision.zones['motivations'].length
+    ) {
       for (let i = 0; i < decision.zones['motivations'].length; i++) {
         let start = decision.zones['motivations'][i].start;
         let end = decision.zones['motivations'][i].end;
@@ -295,7 +301,11 @@ async function indexDecision(decision) {
       }
     }
     document.zoneDispositif = [];
-    if (decision.zones['dispositif']) {
+    if (
+      decision.zones['dispositif'] &&
+      Array.isArray(decision.zones['dispositif']) &&
+      decision.zones['dispositif'].length
+    ) {
       for (let i = 0; i < decision.zones['dispositif'].length; i++) {
         let start = decision.zones['dispositif'][i].start;
         let end = decision.zones['dispositif'][i].end;
@@ -303,7 +313,7 @@ async function indexDecision(decision) {
       }
     }
     document.zoneAnnexes = [];
-    if (decision.zones['annexes']) {
+    if (decision.zones['annexes'] && Array.isArray(decision.zones['annexes']) && decision.zones['annexes'].length) {
       for (let i = 0; i < decision.zones['annexes'].length; i++) {
         let start = decision.zones['annexes'][i].start;
         let end = decision.zones['annexes'][i].end;
