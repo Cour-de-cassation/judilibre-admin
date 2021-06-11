@@ -21,7 +21,11 @@ if [ -z "${KUBECTL}" ]; then
 fi
 
 #set up services to start
-if [ "${KUBE_ZONE}" == "LOCAL" ]; then
+if [ "${KUBE_ZONE}" == "local" ]; then
+        #register host if not already done
+        if ! (grep -q ${APP_HOST} /etc/hosts); then
+                (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
+        fi;
         #assume local kube conf (minikube or k3s)
         export KUBE_SERVICES="elasticsearch service deployment ingress-local";
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
@@ -29,7 +33,6 @@ if [ "${KUBE_ZONE}" == "LOCAL" ]; then
                         # prefer k3s for velocity of install and startup in CI
                         export K8S=k3s;
                 fi;
-
                 if [ "${KUBE_TYPE}" = "k3s" ]; then
                         if ! (which k3s > /dev/null 2>&1); then
                                 (curl -sfL https://get.k3s.io | sh - 2>&1 |\
@@ -47,7 +50,6 @@ if [ "${KUBE_ZONE}" == "LOCAL" ]; then
                                 rm /tmp/img.tar;
                         fi;
                 fi;
-
                 if [ "${K8S}" = "minikube" ]; then
                         minikube start;
                         if ! (minikube image list | grep -q ${DOCKER_IMAGE}); then
@@ -63,16 +65,18 @@ fi;
 
 #get current branch
 if [ -z "${GIT_BRANCH}" ];then
-        export GIT_BRANCH=$(shell git branch | grep '*' | awk '{print $$2}');
+        export GIT_BRANCH=$(git branch | grep '*' | awk '{print $2}');
 fi;
 
 #default k8s namespace
 if [ -z "${KUBE_NAMESPACE}" ]; then
-        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
+        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
 fi;
 
+echo ${KUBE_NAMESPACE}
+
 #display env if DEBUG
-if [ -z "${DEBUG}" ]; then
+if [ ! -z "${APP_DEBUG}" ]; then
         env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
 fi;
 
@@ -82,13 +86,13 @@ fi;
 
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
-if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${APP_GROUP}); then
-        echo "✓   namespace ${APP_GROUP}";
+if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${KUBE_NAMESPACE}); then
+        echo "✓   namespace ${KUBE_NAMESPACE}";
 else
         if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - > /dev/null 2>&1); then
-                echo "🚀  namespace ${APP_GROUP}";
+                echo "🚀  namespace ${KUBE_NAMESPACE}";
         else
-                echo -e "\e[31m❌  namespace ${APP_GROUP}" && exit 1;
+                echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
         fi;
 fi;
 

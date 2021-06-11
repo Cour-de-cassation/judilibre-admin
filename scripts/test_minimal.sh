@@ -18,7 +18,7 @@ done
 export IMPORT_SIZE
 export IMPORT_LIMIT
 export IMPORT_MSG="test api ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/import"
-if [ "${KUBE_ZONE}" == "LOCAL" ];then
+if [ "${KUBE_ZONE}" == "local" ];then
   ./scripts/load_data.sh
 fi;
 
