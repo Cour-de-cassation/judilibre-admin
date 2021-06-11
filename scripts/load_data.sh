@@ -1,4 +1,7 @@
 #!/bin/bash
+
+./scripts/check_install.sh
+
 : ${DATA_DIR:=$(pwd)/judilibre-sder/src/data/export}
 if [ ! -d ${DATA_DIR} ];then
     git clone https://oauth2:${GIT_TOKEN}@github.com/Cour-de-cassation/judilibre-sder;

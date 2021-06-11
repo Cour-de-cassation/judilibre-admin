@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#install bins if needed
+./scripts/check_install.sh
+
+#set version from package & git / could be git tag instead
 if [ -z "${VERSION}" ];then\
         export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
 fi

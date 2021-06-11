@@ -1,4 +1,7 @@
 #!/bin/bash
+
+./scripts/check_install.sh
+
 for route in admin;do
   if curl -s -k --retry 5 --retry-delay 2 -XGET ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' ; then
       echo "✓   test api ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/${route}"
