@@ -137,16 +137,19 @@ api.post(
     'decisions.*.solution_alt': {
       in: 'body',
       isString: true,
+      errorMessage: `Decision.solution_alt must be a string.`,
       optional: true,
     },
     'decisions.*.summary': {
       in: 'body',
       isString: true,
+      errorMessage: `Decision.summary must be a string.`,
       optional: true,
     },
     'decisions.*.bulletin': {
       in: 'body',
       isString: true,
+      errorMessage: `Decision.bulletin must be a string.`,
       optional: true,
     },
     'decisions.*.files': {
