@@ -13,4 +13,13 @@ for route in admin;do
   fi
 done
 
+: ${IMPORT_SIZE:=10}
+: ${IMPORT_LIMIT:=100}
+export IMPORT_SIZE
+export IMPORT_LIMIT
+export IMPORT_MSG="test api ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/import"
+if [ "${KUBE_ZONE}" == "LOCAL" ];then
+  ./scripts/load_data.sh
+fi;
+
 # to be done: import POST route test (shall have a doc to index)
