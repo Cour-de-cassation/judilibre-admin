@@ -21,17 +21,17 @@ if [ -z "${KUBECTL}" ]; then
 fi
 
 #set up services to start
-if [ -z "${APP_DNS}" ]; then
+if [ "${KUBE_ZONE}" == "LOCAL" ]; then
         #assume local kube conf (minikube or k3s)
-        K8S_SERVICES="elasticsearch service deployment ingress-local";
+        export KUBE_SERVICES="elasticsearch service deployment ingress-local";
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
-                if [ -z "${K8S}" ]; then
+                if [ -z "${KUBE_TYPE}" ]; then
                         # prefer k3s for velocity of install and startup in CI
                         export K8S=k3s;
                 fi;
 
-                if [ "${K8S}" = "k3s" ]; then
-                        if ! (which k3s); then
+                if [ "${KUBE_TYPE}" = "k3s" ]; then
+                        if ! (which k3s > /dev/null 2>&1); then
                                 (curl -sfL https://get.k3s.io | sh - 2>&1 |\
                                         awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️   Installed k3s";
                         fi;
@@ -58,19 +58,22 @@ if [ -z "${APP_DNS}" ]; then
                 fi;
         fi;
 else
-        K8S_SERVICES="elasticsearch service deployment certificate ingressroute loadbalancer-traefik"
+        export KUBE_SERVICES="elasticsearch service deployment certificate ingressroute loadbalancer-traefik"
 fi;
 
-export OS_TYPE=$(cat /etc/os-release | grep -E '^NAME=' | sed 's/^.*debian.*$/DEB/I;s/^.*ubuntu.*$/DEB/I;s/^.*fedora.*$/RPM/I;s/.*centos.*$/RPM/I;')
+#get current branch
+if [ -z "${GIT_BRANCH}" ];then
+        export GIT_BRANCH=$(shell git branch | grep '*' | awk '{print $$2}');
+fi;
 
+#default k8s namespace
+if [ -z "${KUBE_NAMESPACE}" ]; then
+        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
+fi;
 
-if [ ! -f "/usr/bin/envsubst" ]; then
-        if [ "${OS_TYPE}" = "DEB" ]; then
-                apt-get install -yqq gettext;
-        fi;
-        if [ "${OS_TYPE}" = "RPM" ]; then
-                sudo yum install -y gettext;
-        fi;
+#display env if DEBUG
+if [ -z "${DEBUG}" ]; then
+        env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
 fi;
 
 #install elasticsearch kube controller
@@ -79,7 +82,7 @@ fi;
 
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
-if (${KUBECTL} get namespaces --namespace=${APP_GROUP} | grep -v 'No resources' | grep -q ${APP_GROUP}); then
+if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${APP_GROUP}); then
         echo "✓   namespace ${APP_GROUP}";
 else
         if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - > /dev/null 2>&1); then
@@ -92,11 +95,11 @@ fi;
 #create configMap for elasticsearch stopwords
 : ${STOPWORDS:=./elastic/config/analysis/stopwords_judilibre.txt}
 RESOURCENAME=${APP_GROUP}-stopwords
-if (${KUBECTL} get configmap --namespace=${APP_GROUP} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
+if (${KUBECTL} get configmap --namespace=${KUBE_NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
         echo "✓   configmap ${APP_GROUP}/${RESOURCENAME}";
 else
         if [ -f "$STOPWORDS" ]; then
-                if (${KUBECTL} create configmap --namespace=${APP_GROUP} ${RESOURCENAME} --from-file=${STOPWORDS} > /dev/null 2>&1); then
+                if (${KUBECTL} create configmap --namespace=${KUBE_NAMESPACE} ${RESOURCENAME} --from-file=${STOPWORDS} > /dev/null 2>&1); then
                         echo "🚀  configmap ${APP_GROUP}/${RESOURCENAME}";
                 else
                         echo -e "\e[31m❌  configmap ${APP_GROUP}/${RESOURCENAME} !\e[0m" && exit 1;
@@ -105,7 +108,7 @@ else
 fi;
 
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
-for resource in ${K8S_SERVICES}; do
+for resource in ${KUBE_SERVICES}; do
         NAMESPACE=$(envsubst < k8s/${resource}.yaml | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;');
         RESOURCENAME=$(envsubst < k8s/${resource}.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
         RESOURCETYPE=$(envsubst < k8s/${resource}.yaml | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
@@ -121,8 +124,8 @@ done;
 : ${ELASTIC_TEMPLATE:=./elastic/template-medium.json}
 
 if [ -f "${ELASTIC_TEMPLATE}" ];then
-        if ! (${KUBECTL} exec --namespace=${APP_GROUP} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
-                if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${APP_GROUP} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > /dev/null 2>&1); then
+        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
+                if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > /dev/null 2>&1); then
                         echo "🚀   elasticsearch templates";
                 else
                         echo -e "\e[31m❌  elasticsearch templates !\e[0m" && exit 1;
@@ -131,8 +134,8 @@ if [ -f "${ELASTIC_TEMPLATE}" ];then
                 echo "✓   elasticsearch templates";
         fi;
 fi;
-if ! (${KUBECTL} exec --namespace=${APP_GROUP} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
-        if (${KUBECTL} exec --namespace=${APP_GROUP} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/${ELASTIC_INDEX}" > /dev/null 2>&1); then
+if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
+        if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/${ELASTIC_INDEX}" > /dev/null 2>&1); then
                 echo "🚀   elasticsearch default index";
         else
                 echo -e "\e[31m❌  elasticsearch default index !\e[0m" && exit 1;
