@@ -2,7 +2,7 @@ apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
   name: ${APP_GROUP}
-  namespace: ${APP_GROUP}
+  namespace: ${KUBE_NAMESPACE}
 spec:
   version: ${ELASTIC_VERSION}
   nodeSets:

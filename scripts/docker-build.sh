@@ -3,6 +3,8 @@
 # builds Docker image of app if not already built or published
 # put it to local kube if minikube or k3s (${K8S} shall be set, then)
 
+./scripts/check_install.sh
+
 if [ -z "${VERSION}" ];then\
         export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
 fi

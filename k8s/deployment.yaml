@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${APP_ID}-deployment
-  namespace: ${APP_GROUP}
+  namespace: ${KUBE_NAMESPACE}
 spec:
   replicas: 1
   selector:
