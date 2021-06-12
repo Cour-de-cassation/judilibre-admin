@@ -73,8 +73,6 @@ if [ -z "${KUBE_NAMESPACE}" ]; then
         export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
 fi;
 
-echo ${KUBE_NAMESPACE}
-
 #display env if DEBUG
 if [ ! -z "${APP_DEBUG}" ]; then
         env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
