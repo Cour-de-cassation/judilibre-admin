@@ -28,7 +28,7 @@ jobs:
         id: extract_version
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
         id: extract_branch
       - name: 🐋 Build the master docker image
         run: ./scripts/docker-build.sh
@@ -42,7 +42,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: ✅ Execute minimal tests
         run: |
-          export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
+          export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
           kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
           ./scripts/test_minimal.sh
@@ -50,12 +50,12 @@ jobs:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           KUBECONFIG: /home/runner/.kube/config-local-k3s.yaml
       - name: 🚀 Push docker image
-        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
+        #if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
         run: |
           echo "${DOCKER_TOKEN}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
           docker push ${DOCKER_USERNAME}/${APP_ID}:${VERSION};
-          docker tag ${DOCKER_USERNAME}/${APP_ID}:${VERSION} ${DOCKER_USERNAME}/${APP_ID}:$(echo ${GIT_BRANCH} | tr '/' '-')
-          docker push ${DOCKER_USERNAME}/${APP_ID}:$(echo ${GIT_BRANCH} | tr '/' '-')
+          docker tag ${DOCKER_USERNAME}/${APP_ID}:${VERSION} ${DOCKER_USERNAME}/${APP_ID}:${GIT_BRANCH}
+          docker push ${DOCKER_USERNAME}/${APP_ID}:${GIT_BRANCH}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
@@ -63,7 +63,7 @@ jobs:
   deploy:
     name: 🚀 Deploy, update ☸️
     needs: build
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
+    #if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     env:
       APP_GROUP: judilibre
@@ -85,6 +85,10 @@ jobs:
       - name: get version
         run: echo "##[set-output name=version;]$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
         id: extract_version
+      - name: extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
+        id: extract_branch
       - name: kube prerequisites
         run: |
           mkdir -p ${HOME}/.kube
@@ -98,6 +102,7 @@ jobs:
         run: |
           if [ "${GIT_BRANCH}" != "master" ];then
             export APP_HOST=admin.${GIT_BRANCH}.judilibre.io;
+            export ELASTIC_MEM=512m;
           fi;
           ./scripts/deploy_k8s_services.sh
         env:
@@ -105,8 +110,12 @@ jobs:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
       - name: 🚀 update ☸️
         run: |
-          export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
-          kubectl set --namespace=${KUBE_NAMESPACE} deployments/${APP_ID}-deployment ${APP_ID}=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
+          if [ "${GIT_BRANCH}" != "master" ];then
+            export APP_HOST=admin.${GIT_BRANCH}.judilibre.io;
+            export ELASTIC_MEM=512m;
+          fi;
+          export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
+          kubectl set image --namespace=${KUBE_NAMESPACE} deployments/${APP_ID}-deployment ${APP_ID}=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
           ./scripts/wait_services_readiness.sh
           kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
