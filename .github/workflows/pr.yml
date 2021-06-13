@@ -48,4 +48,5 @@ jobs:
           ./scripts/test_minimal.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
           KUBECONFIG: /home/runner/.kube/config-local-k3s.yaml
