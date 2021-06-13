@@ -4,7 +4,9 @@
 
 : ${DATA_DIR:=$(pwd)/judilibre-sder/src/data/export}
 if [ ! -d ${DATA_DIR} ];then
-    git clone https://oauth2:${GIT_TOKEN}@github.com/Cour-de-cassation/judilibre-sder;
+    if ! (git clone https://oauth2:${GIT_TOKEN}@github.com/Cour-de-cassation/judilibre-sder > /dev/null 2>&1); then
+        echo -e "e[31m❌ ${IMPORT_MSG} batch $file failed, couldn't clone git repository \e[0m" && exit 1;
+    fi;
 fi;
 
 : ${IMPORT_ROUTE:=import}
@@ -28,4 +30,3 @@ for file in .bulk/*;do
         echo -e "e[31m❌ ${IMPORT_MSG} batch $file failed, cf $file.log! \e[0m" && exit 1;
     fi;
 done;
-echo -e "\033[2K\r✓   ${IMPORT_MSG} done"
