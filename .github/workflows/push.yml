@@ -79,7 +79,7 @@ jobs:
       ELASTIC_MEM: 1024m
       KUBE_TYPE: k8s
       KUBE_ZONE: scw
-      START_TIMEOUT: 60
+      START_TIMEOUT: 120
     steps:
       - uses: actions/checkout@v1
       - name: get version
