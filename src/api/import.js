@@ -92,6 +92,12 @@ api.post(
       errorMessage: `Decision has no solution.`,
       optional: false,
     },
+    'decisions.*.type': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no type.`,
+      optional: false,
+    },
     'decisions.*.text': {
       in: 'body',
       isString: true,
@@ -232,13 +238,8 @@ async function indexDecision(decision) {
   document.numberFull = decision.number;
   document.publication = decision.publication;
   document.solution = decision.solution;
+  document.type = decision.type;
   /* poc remains (wip)
-  if (zones['introduction_subzonage']['juridiction']) {
-    document.jurisdictionName = zones['introduction_subzonage']['juridiction']
-  }
-  if (zones['introduction_subzonage']['chambre']) {
-    document.chamberName = zones['introduction_subzonage']['chambre']
-  }
   if (zones['visa'] !== null) {
     document.visa = zones['visa']
   }

@@ -88,6 +88,9 @@
       "solution": {
         "type": "keyword"
       },
+      "type": {
+        "type": "keyword"
+      },
       "solution_alt": {
         "type": "text",
         "analyzer": "light_french"
