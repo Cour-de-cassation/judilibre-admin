@@ -128,10 +128,10 @@ api.post(
       errorMessage: `Decision.update_date must be a ISO-8601 date (e.g. 2021-05-13).`,
       optional: true,
     },
-    'decisions.*.applied': {
+    'decisions.*.visa': {
       in: 'body',
       isArray: true,
-      errorMessage: `Decision.applied must be an array.`,
+      errorMessage: `Decision.visa must be an array.`,
       optional: true,
     },
     'decisions.*.rapprochements': {
@@ -239,11 +239,6 @@ async function indexDecision(decision) {
   document.publication = decision.publication;
   document.solution = decision.solution;
   document.type = decision.type;
-  /* poc remains (wip)
-  if (zones['visa'] !== null) {
-    document.visa = zones['visa']
-  }
-  */
   if (decision.formation) {
     document.formation = decision.formation;
   }
@@ -253,8 +248,8 @@ async function indexDecision(decision) {
   if (decision.update_date) {
     document.update_date = decision.update_date;
   }
-  if (decision.applied) {
-    document.applied = decision.applied;
+  if (decision.visa) {
+    document.visa = decision.visa;
   }
   if (decision.rapprochements) {
     document.rapprochements = decision.rapprochements;

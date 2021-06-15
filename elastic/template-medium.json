@@ -131,7 +131,7 @@
         "type": "text",
         "analyzer": "medium_french"
       },
-      "applied": {
+      "visa": {
         "type": "text",
         "analyzer": "light_french"
       },
