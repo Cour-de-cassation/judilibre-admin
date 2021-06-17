@@ -229,7 +229,6 @@ async function indexDecision(decision) {
   document.version = decision.version;
   document.source = decision.source;
   document.text = decision.text;
-  document.textExact = decision.text;
   document.chamber = decision.chamber;
   document.decision_date = decision.decision_date;
   document.ecli = decision.ecli;
@@ -271,6 +270,18 @@ async function indexDecision(decision) {
   }
   if (decision.zones) {
     document.zones = decision.zones;
+    document.zoneIntroduction = [];
+    if (
+      decision.zones['introduction'] &&
+      Array.isArray(decision.zones['introduction']) &&
+      decision.zones['introduction'].length
+    ) {
+      for (let i = 0; i < decision.zones['introduction'].length; i++) {
+        let start = decision.zones['introduction'][i].start;
+        let end = decision.zones['introduction'][i].end;
+        document.zoneIntroduction.push(decision.text.substring(start, end).trim());
+      }
+    }
     document.zoneExpose = [];
     if (decision.zones['expose'] && Array.isArray(decision.zones['expose']) && decision.zones['expose'].length) {
       for (let i = 0; i < decision.zones['expose'].length; i++) {

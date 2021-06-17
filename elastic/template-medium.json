@@ -97,31 +97,73 @@
       },
       "text": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
-      "textExact": {
+      "zoneIntroduction": {
         "type": "text",
-        "analyzer": "exact_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "zoneExpose": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "zoneMoyens": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "zoneMotivations": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "zoneDispositif": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "zoneAnnexes": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "themes": {
         "type": "text",
