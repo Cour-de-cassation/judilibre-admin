@@ -5,11 +5,21 @@ metadata:
   namespace: ${KUBE_NAMESPACE}
 spec:
   version: ${ELASTIC_VERSION}
+  volumeClaimDeletePolicy: ${ELASTIC_STORAGE_POLICY}
   nodeSets:
   - name: default
     count: ${ELASTIC_NODES}
     config:
       xpack.security.enabled: false
+    volumeClaimTemplates:
+    - metadata:
+        name: ${APP_GROUP}-es-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: ${ELASTIC_STORAGE_SIZE}
     podTemplate:
       spec:
         initContainers:
