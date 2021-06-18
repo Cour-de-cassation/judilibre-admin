@@ -20,7 +20,6 @@ spec:
         resources:
           requests:
             storage: ${ELASTIC_STORAGE_SIZE}
-        storageClassName: standard
     podTemplate:
       spec:
         initContainers:
