@@ -78,8 +78,8 @@ jobs:
       DOCKER_USERNAME: opendatajustice
       ELASTIC_VERSION: 7.13.2
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 1
-      ELASTIC_MEM: 512m
+      ELASTIC_NODES: 3
+      ELASTIC_MEM: 1024m
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
       ELASTIC_STORAGE_SIZE: 3Gi
       KUBE_TYPE: k8s
