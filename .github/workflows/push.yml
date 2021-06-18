@@ -84,7 +84,7 @@ jobs:
       ELASTIC_STORAGE_SIZE: 3Gi
       KUBE_TYPE: k8s
       KUBE_ZONE: scw
-      START_TIMEOUT: 120
+      START_TIMEOUT: 240
     steps:
       - uses: actions/checkout@v1
       - name: get version
