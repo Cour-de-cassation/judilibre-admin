@@ -71,7 +71,10 @@ if [ "${KUBE_ZONE}" == "local" ]; then
 else
         export KUBE_SERVICES="elasticsearch service deployment";
         if [ "${KUBE_ZONE}" == "scw" ]; then
-                export KUBE_SERVICES="${KUBE_SERVICES} certificate ingressroute loadbalancer-traefik"
+                export KUBE_SERVICES="${KUBE_SERVICES} certificate ingressroute loadbalancer-traefik";
+        fi;
+        if [ "${KUBE_TYPE}" == "openshift" ]; then
+                export KUBE_SERVICES="${KUBE_SERVICES} ingressroute";
         fi;
 fi;
 
@@ -143,7 +146,7 @@ fi;
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
-        if [ "${KUBE_TYPE}" == "openshift" -a "${resource}" == "elasticsearch" ]; then
+        if [ -f k8s/${resource}-${KUBE_TYPE}.yaml ]; then
                 RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
         else
                 RESOURCEFILE=k8s/${resource}.yaml;
