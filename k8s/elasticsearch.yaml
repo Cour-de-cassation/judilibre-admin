@@ -31,7 +31,10 @@ spec:
         - name: elasticsearch
           env:
           - name: ES_JAVA_OPTS
-            value: -Xms${ELASTIC_MEM} -Xmx${ELASTIC_MEM}
+            value: -Xms${ELASTIC_MEM_JVM} -Xmx${ELASTIC_MEM_JVM}
+          resources:
+            requests:
+              memory: ${ELASTIC_MEM}
           readinessProbe:
             httpGet:
               path: /_cluster/health?local=true

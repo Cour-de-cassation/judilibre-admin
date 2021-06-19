@@ -4,7 +4,7 @@ metadata:
   name: ${APP_ID}-deployment
   namespace: ${KUBE_NAMESPACE}
 spec:
-  replicas: 1
+  replicas: ${APP_NODES}
   selector:
     matchLabels:
       app: ${APP_ID}
