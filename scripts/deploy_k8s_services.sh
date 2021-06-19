@@ -11,14 +11,23 @@ fi
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
 if [ -z "${KUBECTL}" ]; then
-        if [ ! -f "$(which kubectl > /dev/null)" ]; then
-                export KUBECTL=$(pwd)/kubectl
-                curl -sLO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" > ${KUBECTL}
-                chmod +x ${KUBECTL};
+        if [ "${KUBE_TYPE}" == "openshift" ]; then
+                if (which oc > /dev/null); then
+                        export KUBECTL=$(which oc);
+                else
+                        export KUBECTL=$(pwd)/oc;
+                        curl -s https://downloads-openshift-console.apps.opj-prd.tdp.ovh/amd64/linux/oc.tar -o - | tar xf -
+                fi;
         else
-                export export KUBECTL=$(which kubectl)
+                if (which kubectl > /dev/null); then
+                        export export KUBECTL=$(which kubectl);
+                else
+                        export KUBECTL=$(pwd)/kubectl;
+                        curl -sLO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" > ${KUBECTL}
+                        chmod +x ${KUBECTL};
+                fi;
         fi;
-fi
+fi;
 
 #set up services to start
 if [ "${KUBE_ZONE}" == "local" ]; then
@@ -33,7 +42,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         # prefer k3s for velocity of install and startup in CI
                         export K8S=k3s;
                 fi;
-                if [ "${KUBE_TYPE}" = "k3s" ]; then
+                if [ "${KUBE_TYPE}" == "k3s" ]; then
                         if ! (which k3s > /dev/null 2>&1); then
                                 (curl -sfL https://get.k3s.io | sh - 2>&1 |\
                                         awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️   Installed k3s";
@@ -60,7 +69,10 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 fi;
         fi;
 else
-        export KUBE_SERVICES="elasticsearch service deployment certificate ingressroute loadbalancer-traefik"
+        export KUBE_SERVICES="elasticsearch service deployment";
+        if [ "${KUBE_ZONE}" == "scw" ]; then
+                export KUBE_SERVICES="${KUBE_SERVICES} certificate ingressroute loadbalancer-traefik"
+        fi;
 fi;
 
 #get current branch
@@ -79,18 +91,37 @@ if [ ! -z "${APP_DEBUG}" ]; then
 fi;
 
 #install elasticsearch kube controller
-(${KUBECTL} get elasticsearch > /dev/null 2>&1 && echo "✓   elasticsearch k8s controller") \
-        || ( (${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.5.0/all-in-one.yaml > /dev/null 2>&1) && echo "🚀  elasticsearch k8s controller")
+if (${KUBECTL} get elasticsearch > /dev/null 2>&1); then
+        echo "✓   elasticsearch k8s controller";
+else
+        if (${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.6.0/all-in-one.yaml > /dev/null 2>&1); then
+                echo "🚀  elasticsearch k8s controller";
+        else
+                echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
+        fi;
+fi;
 
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
-if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${KUBE_NAMESPACE}); then
-        echo "✓   namespace ${KUBE_NAMESPACE}";
-else
-        if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - > /dev/null 2>&1); then
-                echo "🚀  namespace ${KUBE_NAMESPACE}";
+if [ "${KUBE_TYPE}" == "openshift" ]; then
+        if (${KUBECTL} get all --namespace=${KUBE_NAMESPACE} > /dev/null 2>&1); then
+                echo "✓   namespace ${KUBE_NAMESPACE}";
         else
-                echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
+                if (${KUBECTL} new-project ${KUBE_NAMESPACE} > /dev/null 2>&1); then
+                        echo "🚀  namespace ${KUBE_NAMESPACE}";
+                else
+                        echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
+                fi;
+        fi;
+else
+        if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${KUBE_NAMESPACE}); then
+                echo "✓   namespace ${KUBE_NAMESPACE}";
+        else
+                if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - > /dev/null 2>&1); then
+                        echo "🚀  namespace ${KUBE_NAMESPACE}";
+                else
+                        echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
+                fi;
         fi;
 fi;
 
@@ -110,6 +141,7 @@ else
 fi;
 
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
+timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
         if [ "${KUBE_TYPE}" == "openshift" -a "${resource}" == "elasticsearch" ]; then
                 RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
@@ -140,6 +172,8 @@ for resource in ${KUBE_SERVICES}; do
                 export ELASTIC_PASSWORD=$(${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}');
         fi;
 done;
+
+export START_TIMEOUT=$timeout
 
 ./scripts/wait_services_readiness.sh || exit 1;
 
