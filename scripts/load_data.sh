@@ -16,9 +16,9 @@ fi;
 rm -rf .bulk > /dev/null 2>&1
 mkdir .bulk
 (find -L ${DATA_DIR}/ -type f -iname '*.json' | head -${IMPORT_LIMIT} | xargs jq -c '. + {"type":"arret"}' \
-    | awk 'BEGIN{l=0;s=1;b=""}{if (b==""){b=$0}else{b=b "," $0};if (s == '"${IMPORT_SIZE}"') {print "{\"id\": \"" l++ "\", \"decisions\": [" b "]}";s=0;b=""};s++}END{if (b!=""){print "{\"id\": \"" l++ "\", \"decisions\": [" b "]}"}}' \
-    | split -l1 - .bulk/lot_decisions_ && echo -n  "✓   prepared batch of size ${IMPORT_SIZE}") || \
-    (echo -e "e[31m❌ preparation of batch failed" && exit 1);
+    | awk 'BEGIN{l=0;s=1;b="";n}{if (b==""){b=$0}else{b=b "," $0};if (s == '"${IMPORT_SIZE}"') {printf "\033[2K\r…   preparing batches %d", l > "/dev/stderr";print "{\"id\": \"" l++ "\", \"decisions\": [" b "]}";s=0;b=""};s++}END{if (b!=""){print "{\"id\": \"" l++ "\", \"decisions\": [" b "]}"}}' \
+    | split -a8 -l1 - .bulk/lot_decisions_ && echo -en  "\033[2K\r✓   prepared batch of size ${IMPORT_SIZE}") || \
+    (echo -e "\033[2K\re[31m❌ preparation of batch failed" && exit 1);
 
 BATCH_NUMBER=$(ls .bulk/ | wc -l)
 BATCH=0
