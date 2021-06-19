@@ -9,8 +9,6 @@ spec:
   nodeSets:
   - name: default
     count: ${ELASTIC_NODES}
-    config:
-      xpack.security.enabled: false
     volumeClaimTemplates:
     - metadata:
         name: ${APP_GROUP}-es-data
@@ -35,13 +33,6 @@ spec:
           resources:
             requests:
               memory: ${ELASTIC_MEM}
-          readinessProbe:
-            httpGet:
-              path: /_cluster/health?local=true
-              port: 9200
-              scheme: HTTP
-            periodSeconds: 3
-            initialDelaySeconds: 3
           volumeMounts:
           - name: stopwords
             mountPath: /usr/share/elasticsearch/config/analysis/

@@ -3,7 +3,7 @@ const { Client } = require('@elastic/elasticsearch');
 
 class Elastic {
   constructor() {
-    this.client = new Client({ node: `http://${process.env.ELASTIC_NODE}` });
+    this.client = new Client({ node: `${process.env.ELASTIC_NODE}`, ssl: { rejectUnauthorized: false }});
   }
 }
 

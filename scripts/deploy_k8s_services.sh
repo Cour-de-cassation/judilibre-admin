@@ -111,13 +111,34 @@ fi;
 
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
 for resource in ${KUBE_SERVICES}; do
-        NAMESPACE=$(envsubst < k8s/${resource}.yaml | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;');
-        RESOURCENAME=$(envsubst < k8s/${resource}.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
-        RESOURCETYPE=$(envsubst < k8s/${resource}.yaml | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
-        (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME} && echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}") || \
-        ( (envsubst < k8s/${resource}.yaml | ${KUBECTL} apply -f - > /dev/null) && (echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}") ) \
-        || ( echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1);
-        if [ "$?" -ne "0" ]; then exit 1;fi;
+        if [ "${KUBE_TYPE}" == "openshift" -a "${resource}" == "elasticsearch" ]; then
+                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
+        else
+                RESOURCEFILE=k8s/${resource}.yaml;
+        fi;
+        NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;');
+        RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
+        RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
+        if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
+                echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
+        else
+                if (envsubst < ${RESOURCEFILE} | ${KUBECTL} apply -f - > /dev/null); then
+                        echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
+                else
+                        echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1;
+                fi;
+        fi;
+        if [ "${resource}" == "elasticsearch" ]; then
+                ret=1 ;\
+                until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do
+                        (${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}' > /dev/null 2>&1);
+                        ret=$? ;
+                        if [ "$ret" -ne "0" ] ; then printf "\r\033[2K%03d Wait for elasticsearch to setup secret" $timeout ; fi ;
+                        ((timeout--)); sleep 1 ;
+                done ;
+                echo -en "\r\033[2K";
+                export ELASTIC_PASSWORD=$(${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}');
+        fi;
 done;
 
 ./scripts/wait_services_readiness.sh || exit 1;
@@ -125,9 +146,11 @@ done;
 # elasticsearch init
 : ${ELASTIC_TEMPLATE:=./elastic/template-medium.json}
 
+export ELASTIC_NODE="https://elastic:${ELASTIC_PASSWORD}@localhost:9200"
+
 if [ -f "${ELASTIC_TEMPLATE}" ];then
-        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
-                if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > /dev/null 2>&1); then
+        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
+                if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > /dev/null 2>&1); then
                         echo "🚀   elasticsearch templates";
                 else
                         echo -e "\e[31m❌  elasticsearch templates !\e[0m" && exit 1;
@@ -136,8 +159,8 @@ if [ -f "${ELASTIC_TEMPLATE}" ];then
                 echo "✓   elasticsearch templates";
         fi;
 fi;
-if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s "localhost:9200/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
-        if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -XPUT "localhost:9200/${ELASTIC_INDEX}" > /dev/null 2>&1); then
+if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
+        if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/${ELASTIC_INDEX}" > /dev/null 2>&1); then
                 echo "🚀   elasticsearch default index";
         else
                 echo -e "\e[31m❌  elasticsearch default index !\e[0m" && exit 1;
