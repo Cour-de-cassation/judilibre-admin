@@ -19,12 +19,10 @@ spec:
           requests:
             storage: ${ELASTIC_STORAGE_SIZE}
     podTemplate:
+      metadata:
+        labels:
+          tuned.openshift.io/elasticsearch: ""
       spec:
-        initContainers:
-        - name: sysctl
-          securityContext:
-            privileged: true
-          command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
         containers:
         - name: elasticsearch
           env:
