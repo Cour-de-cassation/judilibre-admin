@@ -15,13 +15,14 @@ jobs:
       API_PORT: 8080
       APP_SCHEME: https
       DOCKER_USERNAME: opendatajustice
-      ELASTIC_VERSION: 7.13.2
+      ELATIC_APP_USER: elastic
       ELASTIC_INDEX: judilibre_0
       ELASTIC_NODES: 1
       ELASTIC_MEM: 1024Mi
       ELASTIC_MEM_JVM: 512m
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownAndClusterDeletion
       ELASTIC_STORAGE_SIZE: 3Gi
+      ELASTIC_VERSION: 7.13.2
       KUBE_TYPE: k3s
       KUBE_ZONE: local
       START_TIMEOUT: 120
@@ -79,7 +80,7 @@ jobs:
       APP_PORT: 443
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
-      ELASTIC_VERSION: 7.13.2
+      ELASTIC_APP_USER: elastic
       ELASTIC_INDEX: judilibre_0
       ELASTIC_NODES: 3
       ELASTIC_MEM: 2048Mi
@@ -87,6 +88,7 @@ jobs:
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD }}
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
       ELASTIC_STORAGE_SIZE: 3Gi
+      ELASTIC_VERSION: 7.13.2
       KUBE_TYPE: k8s
       KUBE_ZONE: scw
       START_TIMEOUT: 240
