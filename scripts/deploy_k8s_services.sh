@@ -161,6 +161,7 @@ for resource in ${KUBE_SERVICES}; do
                 if [ "${ELASTIC_APP_USER}" == "elastic" ]; then
                         export ELASTIC_APP_PASSWORD=$ELASTIC_ADMIN_PASSWORD;
                 else
+                        export ELASTIC_APP_USER=search
                         export ELASTIC_APP_PASSWORD=$ELASTIC_SEARCH_PASSWORD;
                 fi;
         fi;
