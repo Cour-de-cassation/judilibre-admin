@@ -6,6 +6,11 @@ metadata:
 spec:
   version: ${ELASTIC_VERSION}
   volumeClaimDeletePolicy: ${ELASTIC_STORAGE_POLICY}
+  auth:
+    fileRealm:
+    - secretName: ${APP_GROUP}-es-users
+    roles:
+    - secretName: ${APP_GROUP}-es-roles
   nodeSets:
   - name: default
     count: ${ELASTIC_NODES}

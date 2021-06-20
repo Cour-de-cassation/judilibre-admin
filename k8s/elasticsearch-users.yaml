@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${APP_GROUP}-es-users
+  namespace: ${KUBE_NAMESPACE}
+stringData:
+  users: |-
+    search:${ELASTIC_SEARCH_HASH}
+  users_roles: |-
+    search:search

@@ -36,7 +36,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
         fi;
         #assume local kube conf (minikube or k3s)
-        export KUBE_SERVICES="elasticsearch service deployment ingress-local";
+        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment ingress-local";
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
                 if [ -z "${KUBE_TYPE}" ]; then
                         # prefer k3s for velocity of install and startup in CI
@@ -69,7 +69,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 fi;
         fi;
 else
-        export KUBE_SERVICES="elasticsearch service deployment";
+        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
         if [ "${KUBE_ZONE}" == "scw" ]; then
                 export KUBE_SERVICES="${KUBE_SERVICES} certificate ingressroute loadbalancer-traefik";
         fi;
@@ -144,6 +144,9 @@ else
 fi;
 
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
+: ${ELASTIC_SEARCH_PASSWORD:=changeme}
+export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | tr -d ':\n' | sed 's/\$2y/\$2a/')
+
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
         if [ -f k8s/${resource}-${KUBE_TYPE}.yaml ]; then
@@ -154,6 +157,13 @@ for resource in ${KUBE_SERVICES}; do
         NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;');
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
+        if [ "${resource}" == "deployment" ]; then
+                if [ "${ELASTIC_APP_USER}" == "elastic" ]; then
+                        export ELASTIC_APP_PASSWORD=$ELASTIC_ADMIN_PASSWORD;
+                else
+                        export ELASTIC_APP_PASSWORD=$ELASTIC_SEARCH_PASSWORD;
+                fi;
+        fi;
         if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
@@ -172,7 +182,7 @@ for resource in ${KUBE_SERVICES}; do
                         ((timeout--)); sleep 1 ;
                 done ;
                 echo -en "\r\033[2K";
-                export ELASTIC_PASSWORD=$(${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}');
+                export ELASTIC_ADMIN_PASSWORD=$(${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}');
         fi;
 done;
 
@@ -183,7 +193,7 @@ export START_TIMEOUT=$timeout
 # elasticsearch init
 : ${ELASTIC_TEMPLATE:=./elastic/template-medium.json}
 
-export ELASTIC_NODE="https://elastic:${ELASTIC_PASSWORD}@localhost:9200"
+export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 
 if [ -f "${ELASTIC_TEMPLATE}" ];then
         if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then

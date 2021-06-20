@@ -19,3 +19,12 @@ if ! (which jq > /dev/null 2>&1); then
                 sudo yum install -y jq;
         fi;
 fi
+
+if ! (which htpasswd > /dev/null 2>&1); then
+        if [ "${OS_TYPE}" = "DEB" ]; then
+                apt-get install -yqq apache2-utils;
+        fi;
+        if [ "${OS_TYPE}" = "RPM" ]; then
+                sudo yum install -y httpd-tools;
+        fi;
+fi
