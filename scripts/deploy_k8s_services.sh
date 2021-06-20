@@ -93,17 +93,6 @@ if [ ! -z "${APP_DEBUG}" ]; then
         env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
 fi;
 
-#install elasticsearch kube controller
-if (${KUBECTL} get elasticsearch > /dev/null 2>&1); then
-        echo "✓   elasticsearch k8s controller";
-else
-        if (${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.6.0/all-in-one.yaml > /dev/null 2>&1); then
-                echo "🚀  elasticsearch k8s controller";
-        else
-                echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
-        fi;
-fi;
-
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
 if [ "${KUBE_TYPE}" == "openshift" ]; then
@@ -125,6 +114,17 @@ else
                 else
                         echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
                 fi;
+        fi;
+fi;
+
+#install elasticsearch kube cluster controller
+if (${KUBECTL} get elasticsearch > /dev/null 2>&1); then
+        echo "✓   elasticsearch k8s controller";
+else
+        if (${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.6.0/all-in-one.yaml > /dev/null 2>&1); then
+                echo "🚀  elasticsearch k8s controller";
+        else
+                echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
         fi;
 fi;
 
