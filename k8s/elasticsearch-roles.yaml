@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${APP_GROUP}-es-roles
+  namespace: ${KUBE_NAMESPACE}
+stringData:
+  roles.yml: |-
+    search:
+      run_as: [ 'clicks_watcher_1' ]
+      indices:
+      - names: [ '${APP_GROUP}_*' ]
+        privileges: [ 'read' ]
