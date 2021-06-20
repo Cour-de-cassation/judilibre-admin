@@ -15,7 +15,6 @@ jobs:
       API_PORT: 8080
       APP_SCHEME: https
       DOCKER_USERNAME: opendatajustice
-      ELASTIC_APP_USER: elastic
       ELASTIC_INDEX: judilibre_0
       ELASTIC_NODES: 1
       ELASTIC_MEM: 1024Mi

@@ -158,7 +158,8 @@ for resource in ${KUBE_SERVICES}; do
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
         if [ "${resource}" == "deployment" ]; then
-                if [ "${ELASTIC_APP_USER}" == "elastic" ]; then
+                if [[ "${APP_ID}" == *"admin" ]]; then
+                        export ELASTIC_APP_USER=elastic
                         export ELASTIC_APP_PASSWORD=$ELASTIC_ADMIN_PASSWORD;
                 else
                         export ELASTIC_APP_USER=search
