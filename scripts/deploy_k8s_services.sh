@@ -158,22 +158,36 @@ for resource in ${KUBE_SERVICES}; do
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//');
         if [ "${resource}" == "deployment" ]; then
+                # elastic secrets
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth > /dev/null 2>&1); then
                         echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                 else
                         if [[ "${APP_ID}" == *"admin" ]]; then
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200" > /dev/null 2>&1); then
-                                        echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
+                                        echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
-                                        echo ${KUBECTL} create secret generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200"
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
                         else
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://search:${ELASTIC_SEARCH_PASSWORD}@${APP_GROUP}-es-http:9200" > /dev/null 2>&1);then
-                                        echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
+                                        echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
+                        fi;
+                fi;
+                # api secret / password is dummy for search API, only used in admin api
+                if [ -z "${HTTP_PASSWD}" ];then
+                        export HTTP_PASSWD=$(openssl rand -hex 32)
+                        echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
+                fi
+                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd > /dev/null 2>&1); then
+                        echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwpasswdord";
+                else
+                        if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" > /dev/null 2>&1); then
+                                echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
+                        else
+                                echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
                         fi;
                 fi;
         fi;

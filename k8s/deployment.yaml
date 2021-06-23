@@ -26,3 +26,8 @@ spec:
                 key: elastic-node
           - name: ELASTIC_INDEX
             value: ${ELASTIC_INDEX}
+          - name: HTTP_PASSWD
+            valueFrom:
+              secretKeyRef:
+                name: ${APP_ID}-http-passwd
+                key: http-passwd

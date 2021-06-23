@@ -22,6 +22,7 @@ jobs:
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownAndClusterDeletion
       ELASTIC_STORAGE_SIZE: 3Gi
       ELASTIC_VERSION: 7.13.2
+      HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
       KUBE_TYPE: k3s
       KUBE_ZONE: local
       START_TIMEOUT: 120

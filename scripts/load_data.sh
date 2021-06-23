@@ -25,7 +25,7 @@ BATCH_NUMBER=$(ls ${IMPORT_DIR}/ | wc -l)
 BATCH=0
 for file in ${IMPORT_DIR}/*;do
     ((BATCH++))
-    if [ ! $(curl -vvv --fail -k -XPOST ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/${IMPORT_ROUTE} -H "Content-type:application/json" -d @$file > $file.log 2>&1) ];then
+    if [ ! $(curl -vvv --fail -k ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${IMPORT_ROUTE} -H "Content-type:application/json" -d @$file > $file.log 2>&1) ];then
         echo -en "\033[2K\r✓   ${IMPORT_MSG} batch (${BATCH}/${BATCH_NUMBER})"
     else
         echo -e "e[31m❌ ${IMPORT_MSG} batch $file failed, cf $file.log! \e[0m" && exit 1;
