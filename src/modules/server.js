@@ -5,6 +5,7 @@ const express = require('express');
 class Server {
   constructor() {
     this.app = express();
+    const basicAuth = require('express-basic-auth');
     this.app.use(express.json({ limit: '50mb' }));
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.static(path.join(__dirname, '..', '..', 'public')));
@@ -16,6 +17,11 @@ class Server {
       }
       next();
     });
+    this.app.use(
+      basicAuth({
+        users: { admin: process.env.HTTP_PASSWD },
+      }),
+    );
     this.app.use(require(path.join(__dirname, '..', 'api')));
     this.started = false;
   }
