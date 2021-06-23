@@ -20,7 +20,9 @@ spec:
         - containerPort: ${API_PORT}
         env:
           - name: ELASTIC_NODE
-            value: "https://${ELASTIC_APP_USER}:${ELASTIC_APP_PASSWORD}@${APP_GROUP}-es-http:9200"
+            valueFrom:
+              secretKeyRef:
+                name: ${APP_ID}-es-path-with-auth
+                key: elastic-node
           - name: ELASTIC_INDEX
             value: ${ELASTIC_INDEX}
-
