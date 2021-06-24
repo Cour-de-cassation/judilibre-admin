@@ -96,8 +96,9 @@ fi;
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//');
 if [ "${KUBE_TYPE}" == "openshift" ]; then
-        if (${KUBECTL} get all --namespace=${KUBE_NAMESPACE} > /dev/null 2>&1); then
-                echo "✓   namespace ${KUBE_NAMESPACE}";
+        if (${KUBECTL} get namespace ${KUBE_NAMESPACE} > /dev/null 2>&1); then
+
+		echo "✓   namespace ${KUBE_NAMESPACE}";
         else
                 if (${KUBECTL} new-project ${KUBE_NAMESPACE} > /dev/null 2>&1); then
                         echo "🚀  namespace ${KUBE_NAMESPACE}";
