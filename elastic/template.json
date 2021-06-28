@@ -196,9 +196,12 @@
       "bulletin": {
         "type": "keyword"
       },
+      "contested": {
+        "type": "flattened",
+        "index": false
+      },
       "rapprochements": {
-        "type": "text",
-        "analyzer": "light_french",
+        "type": "flattened",
         "index": false
       },
       "files": {
