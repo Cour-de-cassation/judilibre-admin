@@ -9,4 +9,4 @@ stringData:
       run_as: [ 'clicks_watcher_1' ]
       indices:
       - names: [ '${APP_GROUP}_*' ]
-        privileges: [ 'read' ]
+        privileges: [ 'read', 'monitor' ]
