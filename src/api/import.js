@@ -140,6 +140,12 @@ api.post(
       errorMessage: `Decision.rapprochements must be an array.`,
       optional: true,
     },
+    'decisions.*.contested': {
+      in: 'body',
+      isObject: true,
+      errorMessage: `Decision.contested must be an object.`,
+      optional: true,
+    },
     'decisions.*.solution_alt': {
       in: 'body',
       isString: true,
@@ -251,7 +257,12 @@ async function indexDecision(decision) {
     document.visa = decision.visa;
   }
   if (decision.rapprochements) {
-    document.rapprochements = decision.rapprochements;
+    document.rapprochements = {
+      value: decision.rapprochements,
+    };
+  }
+  if (decision.contested) {
+    document.contested = decision.contested;
   }
   if (decision.solution_alt) {
     document.solution_alt = decision.solution_alt;
