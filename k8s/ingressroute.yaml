@@ -13,4 +13,4 @@ spec:
         - name: ${APP_ID}-svc
           port: 80
   tls:
-    secretName: ${APP_ID}-cert
+    secretName: ${APP_ID}-cert-${ACME}

@@ -30,13 +30,16 @@ if [ -z "${KUBECTL}" ]; then
 fi;
 
 #set up services to start
+if [ -z ${KUBE_SERVICES} ];then
+        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
+fi;
 if [ "${KUBE_ZONE}" == "local" ]; then
         #register host if not already done
         if ! (grep -q ${APP_HOST} /etc/hosts); then
                 (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
         fi;
         #assume local kube conf (minikube or k3s)
-        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment ingress-local";
+        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
                 if [ -z "${KUBE_TYPE}" ]; then
                         # prefer k3s for velocity of install and startup in CI
@@ -69,9 +72,32 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 fi;
         fi;
 else
-        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
-        if [ "${KUBE_ZONE}" == "scw" ]; then
-                export KUBE_SERVICES="${KUBE_SERVICES} certificate ingressroute loadbalancer-traefik";
+        if [[ "${KUBE_ZONE}" == "scw"* ]]; then
+                if [ -z "${KUBE_INGRESS}" ]; then
+                        export KUBE_INGRESS=nginx
+                        export KUBE_SOLVER=nginx;
+                        export KUBE_CONF_ROUTE=ingress;
+                        export KUBE_CONF_LB=loadbalancer;
+                else
+                        export KUBE_INGRESS=traefik;
+                        export KUBE_SOLVER=traefik-cert-manager;
+                        export KUBE_CONF_ROUTE=ingressroute;
+                        export KUBE_CONF_LB=loadbalancer-traefik;
+                fi;
+                export KUBE_SERVICES="${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE} ${KUBE_CONF_LB}";
+                if [ -z "${ACME}" ]; then
+                        #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
+                        export ACME=acme;
+                fi;
+                if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
+                        echo "✓   cert-manager";
+                else
+                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml 2>&1 > /dev/null); then
+                                echo "🚀  cert-manager";
+                        else
+                                echo -e "\e[31m❌  cert-manager";
+                        fi;
+                fi;
         fi;
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 export KUBE_SERVICES="${KUBE_SERVICES} ingressroute";
