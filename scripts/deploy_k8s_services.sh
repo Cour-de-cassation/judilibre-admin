@@ -75,6 +75,8 @@ else
         if [[ "${KUBE_ZONE}" == "scw"* ]]; then
                 if [ -z "${KUBE_INGRESS}" ]; then
                         export KUBE_INGRESS=nginx
+                fi;
+                if [ "${KUBE_INGRESS}" == "nginx" ]; then
                         export KUBE_SOLVER=nginx;
                         export KUBE_CONF_ROUTE=ingress;
                         export KUBE_CONF_LB=loadbalancer;
