@@ -1,13 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ${APP_ID}-ingress
+  name: ${APP_ID}-route
   namespace: ${KUBE_NAMESPACE}
 spec:
   tls:
   - hosts:
     - ${APP_HOST}
-    secretName: ${APP_ID}-tls
+    secretName: ${APP_ID}-cert-${ACME}
   rules:
   - host: ${APP_HOST}
     http:
