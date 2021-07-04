@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: ${APP_ID}-route
   namespace: ${KUBE_NAMESPACE}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
 spec:
   tls:
   - hosts:
