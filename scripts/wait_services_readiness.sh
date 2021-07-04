@@ -22,7 +22,7 @@ fi;
 ret=0;ok=""
 if [ "${KUBE_TYPE}" != "openshift" ]; then
     until [ "$timeout" -le 0 -o ! -z "$ok" ] ; do
-            lb=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | awk '{print $1}');
+            lb=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | grep ${APP_ID} | awk '{print $1}');
             if [ ! -z "$lb" ]; then
                 ret=$(${KUBECTL} describe service/${lb} --namespace=kube-system | grep Endpoints | awk 'BEGIN{s=0}($2){s++}END{printf s}');
             fi;
