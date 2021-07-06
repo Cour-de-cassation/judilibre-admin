@@ -16,7 +16,7 @@ spec:
     count: ${ELASTIC_NODES}
     volumeClaimTemplates:
     - metadata:
-        name: ${APP_GROUP}-es-data
+        name: elasticsearch-data
       spec:
         accessModes:
         - ReadWriteOnce
