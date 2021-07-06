@@ -33,12 +33,6 @@ api.post(
       errorMessage: `Decision has no date.`,
       optional: false,
     },
-    'decisions.*.ecli': {
-      in: 'body',
-      isString: true,
-      errorMessage: `Decision has no ECLI.`,
-      optional: false,
-    },
     'decisions.*.id': {
       in: 'body',
       isString: true,
@@ -103,6 +97,12 @@ api.post(
       isString: true,
       errorMessage: `Decision has no text.`,
       optional: false,
+    },
+    'decisions.*.ecli': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.ecli must be a string.`,
+      optional: true,
     },
     'decisions.*.formation': {
       in: 'body',
@@ -237,13 +237,15 @@ async function indexDecision(decision) {
   document.text = decision.text;
   document.chamber = decision.chamber;
   document.decision_date = decision.decision_date;
-  document.ecli = decision.ecli;
   document.jurisdiction = decision.jurisdiction;
   document.number = decision.number.replace(/[^\w\d]/gm, '').trim();
   document.numberFull = decision.number;
   document.publication = decision.publication;
   document.solution = decision.solution;
   document.type = decision.type;
+  if (decision.ecli) {
+    document.ecli = decision.ecli;
+  }
   if (decision.formation) {
     document.formation = decision.formation;
   }
