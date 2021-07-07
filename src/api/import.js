@@ -212,10 +212,16 @@ async function postImport(query) {
         if (result === true) {
           response.indexed.push(decision.sourceId);
         } else {
-          response.not_indexed.push(decision.sourceId);
+          response.not_indexed.push({
+            id: decision.sourceId,
+            reason: result,
+          });
         }
       } catch (e) {
-        response.not_indexed.push(decision.sourceId);
+        response.not_indexed.push({
+          id: decision.sourceId,
+          reason: e.message,
+        });
         console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.sourceId}`);
         console.error(e);
       }
@@ -354,7 +360,7 @@ async function indexDecision(decision) {
   if (response && response.body && (response.body.result === 'created' || response.body.result === 'updated')) {
     return true;
   }
-  return false;
+  return response;
 }
 
 module.exports = api;
