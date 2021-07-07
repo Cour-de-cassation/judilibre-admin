@@ -113,7 +113,7 @@ api.post(
     'decisions.*.zones': {
       in: 'body',
       isObject: true,
-      errorMessage: `Decision.zone must be an object.`,
+      errorMessage: `Decision.zones must be an object.`,
       optional: true,
     },
     'decisions.*.nac': {
