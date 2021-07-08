@@ -6,7 +6,9 @@ metadata:
 stringData:
   roles.yml: |-
     search:
-      run_as: [ 'clicks_watcher_1' ]
+      run_as: [ 'search' ]
+      cluster:
+      - monitor
       indices:
       - names: [ '${APP_GROUP}_*' ]
-        privileges: [ 'read', 'monitor' ]
+        privileges: [ 'read' ]
