@@ -1,6 +1,32 @@
 require('./env');
 const path = require('path');
 const express = require('express');
+const { RateLimiterMemory } = require('rate-limiter-flexible');
+const rateLimiter = new RateLimiterMemory({
+  points: 10,
+  duration: 1,
+  blockDuration: 5 * 60,
+});
+const rateLimiterMiddleware = (req, res, next) => {
+  rateLimiter
+    .consume(req.ip)
+    .then((rateLimiterRes) => {
+      res.setHeader('X-RateLimit-Limit', rateLimiter.points);
+      res.setHeader('X-RateLimit-Remaining', rateLimiterRes.remainingPoints);
+      next();
+    })
+    .catch((rateLimiterRes) => {
+      res.setHeader('Retry-After', rateLimiterRes.msBeforeNext / 1000);
+      res.setHeader('X-RateLimit-Limit', rateLimiter.points);
+      res.setHeader('X-RateLimit-Remaining', rateLimiterRes.remainingPoints);
+      res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiterRes.msBeforeNext));
+      if (rateLimiterRes.isFirstInDuration) {
+        res.status(429).send('Too Many Requests');
+      } else {
+        res.status(423).send('Locked');
+      }
+    });
+};
 
 class Server {
   constructor() {
@@ -8,6 +34,7 @@ class Server {
     const basicAuth = require('express-basic-auth');
     this.app.use(express.json({ limit: '50mb' }));
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(rateLimiterMiddleware);
     this.app.use((req, res, next) => {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'deny');
