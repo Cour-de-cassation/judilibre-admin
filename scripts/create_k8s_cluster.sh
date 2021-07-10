@@ -1,5 +1,5 @@
 #!/bin/bash
-[ -z "${SCW_SECRET_TOKEN}" -o -z "${SCW_PROJECT_ID}" -o -z "${SCW_PROJECT_NAME}" ] && \
+[ -z "${SCW_KUBE_SECRET_TOKEN}" -o -z "${SCW_KUBE_PROJECT_ID}" -o -z "${SCW_KUBE_PROJECT_NAME}" ] && \
     echo "Impossible de créer une instance sans SCW_PROJECT_NAME, SCW_PROJECT_ID ou SCW_SECRET_TOKEN" && exit 1;
 
 : ${SCW_CNI:="cilium"}
@@ -10,7 +10,7 @@
 : ${SCW_ZONE:="fr-par-1"}
 : ${KUBE_INGRESS:='nginx'}
 
-SCW_KUBE_CLUSTERCONFIG="{'project_id':'${SCW_PROJECT_ID}', 'name':'${SCW_PROJECT_NAME}-${SCW_ZONE}',
+SCW_KUBE_CLUSTERCONFIG="{'project_id':'${SCW_KUBE_PROJECT_ID}', 'name':'${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}',
                          'ingress':'${KUBE_INGRESS}', 'cni': '${SCW_CNI}', 'version':'${SCW_KUBE_VERSION}',
                          'auto_upgrade':{'enable':true,'maintenance_window':{'start_hour':2, 'day':'any'}},
                          'pools':[{'name':'default','node_type':'${SCW_FLAVOR}',
@@ -37,4 +37,10 @@ until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do\
         if [ "$ret" -ne "0" ] ; then printf "\r\033[2K%03d Wait for k8s ${SCW_KUBE_ID} to be ready" $timeout ; fi ;\
         ((timeout--)); sleep 1 ; \
 done ;
-echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_ID} is ready" && exit 1;
+echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_ID} is ready";
+
+: ${KUBECONFIG:="${HOME}/.kube/kubeconfig-${SCW_PROJECT_NAME}-${SCW_ZONE}.yaml"}
+
+if (curl -s "${SCW_KUBE_API}/${SCW_KUBE_ID}/kubeconfig?dl=1" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" > ${KUBECONFIG});then
+    echo "✓   k8s kubeconfig downloaded";
+fi
