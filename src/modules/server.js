@@ -19,7 +19,8 @@ const rateLimiterMiddleware = (req, res, next) => {
       res.setHeader('Retry-After', rateLimiterRes.msBeforeNext / 1000);
       res.setHeader('X-RateLimit-Limit', rateLimiter.points);
       res.setHeader('X-RateLimit-Remaining', rateLimiterRes.remainingPoints);
-      res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiterRes.msBeforeNext));
+      const reset = new Date(Date.now() + rateLimiterRes.msBeforeNext);
+      res.setHeader('X-RateLimit-Reset', reset.getTime());
       if (rateLimiterRes.isFirstInDuration) {
         res.status(429).send('Too Many Requests');
       } else {
