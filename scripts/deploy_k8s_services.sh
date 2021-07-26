@@ -240,6 +240,40 @@ for resource in ${KUBE_SERVICES}; do
                 echo -en "\r\033[2K";
                 export ELASTIC_ADMIN_PASSWORD=$(${KUBECTL} get secret --namespace=${NAMESPACE} ${APP_GROUP}-es-elastic-user -o go-template='{{.data.elastic | base64decode}}');
         fi;
+        if [ "${resource}" == "loadbalancer" ]; then
+                ret=0;ok="";
+                if [ "${KUBE_TYPE}" != "openshift" ]; then
+                        until [ "$timeout" -le 0 -o ! -z "$ok" ] ; do
+                                lb=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $1}');
+                                if [ ! -z "$lb" ]; then
+                                        ret=$(${KUBECTL} describe service/${lb} --namespace=kube-system | grep Endpoints | awk 'BEGIN{s=0}($2){s++}END{printf s}');
+                                fi;
+                                if [ "$ret" -eq "0" ] ; then
+                                        printf "\r\033[2K%03d Wait for Loadbalancer to be ready" $timeout;
+                                else
+                                        if (curl -s -o /dev/null -k -XGET ${APP_SCHEME}://${APP_HOST}:${APP_PORT}); then
+                                        ok="ok";
+                                        else
+                                        printf "\r\033[2K%03d Wait for Endpoints to be ready" $timeout;
+                                        fi;
+                                fi;
+                                ((timeout--)); sleep 1 ;
+                        done ;
+                        if [ -z "$ok" ];then
+                                (echo -en "\r\033[2K\e[31m❌  loadbalancer is not ready !\e[0m\n" && (${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer) && exit 1)
+                        else
+                                (echo -en "\r\033[2K✓   load balancer is ready\n")
+                        fi;
+                        if [ ! -z "${SCW_DNS_SECRET_TOKEN}" ];then
+                                export SCW_DNS_UPDATE_IP=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $4}');
+                                if [ -z "${SCW_DNS_UPDATE_IP}" ];then
+                                        echo -e "\e[31m❌  loadblancer failed to get public IP" && exit 1;
+                                fi
+                                echo -e "\r\033[2K✓   loadbalancer got public IP ${SCW_DNS_UPDATE_IP}";
+                                ./scripts/update_dns.sh
+                        fi;
+                fi;
+        fi
 done;
 
 export START_TIMEOUT=$timeout
