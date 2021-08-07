@@ -21,7 +21,7 @@ jobs:
       ELASTIC_MEM_JVM: 512m
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownAndClusterDeletion
       ELASTIC_STORAGE_SIZE: 3Gi
-      ELASTIC_VERSION: 7.13.2
+      ELASTIC_VERSION: 7.13.4
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
       KUBE_TYPE: k3s
       KUBE_ZONE: local
@@ -88,7 +88,7 @@ jobs:
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD }}
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
       ELASTIC_STORAGE_SIZE: 20Gi
-      ELASTIC_VERSION: 7.13.2
+      ELASTIC_VERSION: 7.13.4
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
       KUBE_INGRESS: nginx
       KUBE_TYPE: k8s
@@ -134,7 +134,7 @@ jobs:
           fi;
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
           ./scripts/update_app.sh
-	        kubectl get pods --namespace=${KUBE_NAMESPACE}
+          kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
@@ -203,7 +203,7 @@ jobs:
           fi;
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
           ./scripts/update_app.sh
-	        kubectl get pods --namespace=${KUBE_NAMESPACE}
+          kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
