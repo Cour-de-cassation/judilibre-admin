@@ -26,7 +26,7 @@ export SCW_KUBE_ID=$(curl -s ${SCW_KUBE_API} -H "X-Auth-Token: ${SCW_KUBE_SECRET
                         -d ${SCW_KUBE_CLUSTERCONFIG} | jq -r '.id' | grep -v null)
 
 if [ ! -z "${SCW_KUBE_ID}" ]; then
-    echo "🚀  k8s cluster created";
+    echo "🚀  k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} created";
 else
     echo -e "\e[31m❌  k8s creation failed" && exit 1;
 fi;
@@ -39,12 +39,12 @@ until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do
         if [ "$ret" -ne "0" ] ; then printf "\r\033[2K%03d Wait for k8s ${SCW_KUBE_ID} to be ready" $timeout ; fi ;
         ((timeout--)); sleep 1 ;
 done ;
-echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_ID} is ready";
+echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} ${SCW_KUBE_ID} is ready";
 
 : ${KUBECONFIG:="${HOME}/.kube/kubeconfig-${SCW_PROJECT_NAME}-${SCW_ZONE}.yaml"}
 
 if (curl -s "${SCW_KUBE_API}/${SCW_KUBE_ID}/kubeconfig?dl=1" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" > ${KUBECONFIG});then
-    echo "✓   k8s kubeconfig downloaded";
+    echo "✓   k8s kubeconfig ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} downloaded";
 fi
 
 # wait first ip / use workaround using server API as k8s API is very slow to get IP
@@ -53,7 +53,7 @@ until [ "$timeout" -le 0 -o "${SCW_DNS_UPDATE_IP}" != "" ] ; do
             SCW_K8S_NODENAME=$(curl -s "${SCW_KUBE_API}/${SCW_KUBE_ID}/nodes" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" | jq -cr '.nodes[0].name' | grep -v null)
         fi;
         if [ -z "${SCW_K8S_NODENAME}" ]; then
-            printf "\r\033[2K%03d Wait for k8s first node" $timeout ;
+            printf "\r\033[2K%03d Wait for k8s ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} first node" $timeout ;
         else
             export SCW_DNS_UPDATE_IP=$(curl -s "${SCW_SERVER_API}" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" | jq -cr '.servers[] | select(.name=="'${SCW_K8S_NODENAME}'") | .public_ip.address' | grep -v null);
              if [ -z "${SCW_DNS_UPDATE_IP}" ] ; then printf "\r\033[2K%03d Wait for k8s node ${SCW_K8S_NODENAME} to get IP" $timeout ; fi ;
@@ -62,10 +62,10 @@ until [ "$timeout" -le 0 -o "${SCW_DNS_UPDATE_IP}" != "" ] ; do
 done ;
 
 if [ -z "${SCW_DNS_UPDATE_IP}" ];then
-    echo -e "\r\033[2K\e[31m❌  k8s failed to get public IP" && exit 1;
+    echo -e "\r\033[2K\e[31m❌  k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} failed to get public IP" && exit 1;
 fi
 
-echo -e "\r\033[2K✓   k8s cluster got public IP ${SCW_DNS_UPDATE_IP}";
+echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} has public IP ${SCW_DNS_UPDATE_IP}";
 
 # update DNS with SCW_DNS_UPDATE_IP
 for host in ${APP_HOST} ${APP_HOST_SEARCH}; do
