@@ -20,7 +20,7 @@ if [ -z "${KUBECTL}" ]; then
                 fi;
         else
                 if (which kubectl > /dev/null); then
-                        export export KUBECTL=$(which kubectl);
+                        export KUBECTL=$(which kubectl);
                 else
                         export KUBECTL=$(pwd)/kubectl;
                         curl -sLO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" > ${KUBECTL}
