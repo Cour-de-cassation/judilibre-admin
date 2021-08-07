@@ -133,11 +133,9 @@ jobs:
             export APP_HOST=admin.${GIT_BRANCH}.judilibre.io;
           fi;
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
-          kubectl set image --namespace=${KUBE_NAMESPACE} deployments/${APP_ID}-deployment ${APP_ID}=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
-          ./scripts/wait_services_readiness.sh
-          kubectl get pods --namespace=${KUBE_NAMESPACE}
+          ./scripts/update_app.sh
+	        kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
-          ./scripts/test_minimal.sh || (kubectl rollout undo deployments/${APP_ID}-deployment && exit 1)
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           START_TIMEOUT: 20
@@ -204,11 +202,9 @@ jobs:
             export ELASTIC_MEM=512m;
           fi;
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
-          kubectl set image --namespace=${KUBE_NAMESPACE} deployments/${APP_ID}-deployment ${APP_ID}=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
-          ./scripts/wait_services_readiness.sh
-          kubectl get pods --namespace=${KUBE_NAMESPACE}
+          ./scripts/update_app.sh
+	        kubectl get pods --namespace=${KUBE_NAMESPACE}
           kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
-          ./scripts/test_minimal.sh || (kubectl rollout undo deployments/${APP_ID}-deployment && exit 1)
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           START_TIMEOUT: 20
