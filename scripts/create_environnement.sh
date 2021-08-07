@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -z ENV_FILES ];then
+if [ -z "${ENV_FILES}" ];then
     echo -e "\e[31m❌  your must provide ENV_FILES to deploy targets" && exit 1;
 fi
 
