@@ -4,15 +4,15 @@ metadata:
   name: allow-from-judilibre-admin
   namespace: judilibre-ovh-sopra-dev
 spec:
-  podSelector: 
+  podSelector:
     matchLabels:
       app: judilibre-es
   ingress:
   - from:
-    - podSelector: 
+    - podSelector:
         matchLabels:
           app: judilibre-admin
-    ports: 
+    ports:
     - protocol: TCP
       port: 9200
     - protocol: TCP
@@ -24,15 +24,15 @@ metadata:
   name: allow-from-judilibre-search
   namespace: judilibre-ovh-sopra-dev
 spec:
-  podSelector: 
+  podSelector:
     matchLabels:
       app: judilibre-es
   ingress:
   - from:
-    - podSelector: 
+    - podSelector:
         matchLabels:
           app: judilibre-search
-    ports: 
+    ports:
     - protocol: TCP
       port: 9200
     - protocol: TCP
