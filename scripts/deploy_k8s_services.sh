@@ -150,7 +150,7 @@ fi;
 if (${KUBECTL} get elasticsearch > /dev/null 2>&1); then
         echo "✓   elasticsearch k8s controller";
 else
-        if (${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.6.0/all-in-one.yaml > /dev/null 2>&1); then
+        if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.7.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.7.0/operator.yaml) > /dev/null 2>&1); then
                 echo "🚀  elasticsearch k8s controller";
         else
                 echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
