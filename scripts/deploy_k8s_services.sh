@@ -91,7 +91,7 @@ else
                         export KUBE_CONF_ROUTE=ingressroute;
                         export KUBE_CONF_LB=loadbalancer-traefik;
                 fi;
-                export KUBE_SERVICES="${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE} ${KUBE_CONF_LB}";
+                export KUBE_SERVICES="logging ${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE} ${KUBE_CONF_LB}";
                 if [ -z "${ACME}" ]; then
                         #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
                         export ACME=acme;
@@ -180,6 +180,10 @@ fi;
 #create common services (tls chain based on traefik hypothesis, web exposed k8s like Scaleway, ovh ...)
 : ${ELASTIC_SEARCH_PASSWORD:=changeme}
 export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | tr -d ':\n' | sed 's/\$2y/\$2a/')
+
+#encode S3 log secrets into base64
+export SCW_LOG_ACCESS_KEY_B64=$(echo -n ${SCW_LOG_ACCESS_KEY} | openssl base64)
+export SCW_LOG_SECRET_KEY_B64=$(echo -n ${SCW_LOG_SECRET_KEY} | openssl base64)
 
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do

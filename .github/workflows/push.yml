@@ -127,6 +127,9 @@ jobs:
         env:
           VERSION: ${{ steps.extract_version.outputs.version }}
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          SCW_LOG_BUCKET: ${{ secrets.SCW_LOG_BUCKET }}
+          SCW_LOG_ACCESS_KEY: ${{ secrets.SCW_LOG_ACCESS_KEY }}
+          SCW_LOG_SECRET_KEY: ${{ secrets.SCW_LOG_SECRET_KEY }}
       - name: 🚀 update ☸️
         run: |
           if [ "${GIT_BRANCH}" != "master" ];then
