@@ -32,7 +32,7 @@ if [ ! -z "${SCW_DNS_RECORD_IP}" ];then
             echo -e "\e[31m❌  DNS - failed deleting previous record for ${APP_DNS_SHORT}" && exit 1;
         fi;
     else
-        echo -e "✓   DNS - record ${APP_DNS_SHORT} already exists";
+        echo "✓   DNS - record ${APP_DNS_SHORT} already exists";
         SKIP=true
     fi;
 fi
@@ -40,7 +40,7 @@ fi
 if [ -z "${SKIP}" ]; then
     SCW_DNS_RECORD="{'changes':[{'add':{
                         'records': [{
-                            'ttl': 600,
+                            'ttl': 60,
                             'type':'A','name':'${APP_DNS_SHORT}','data':'${SCW_DNS_UPDATE_IP}'
                             }]
                         }}]}"
