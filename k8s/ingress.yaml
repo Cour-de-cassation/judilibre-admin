@@ -5,6 +5,7 @@ metadata:
   namespace: ${KUBE_NAMESPACE}
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    nginx.ingress.kubernetes.io/use-proxy-protocol: "true"
 spec:
   tls:
   - hosts:
