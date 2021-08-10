@@ -1,16 +1,25 @@
 #!/bin/bash
 
 ./scripts/check_install.sh
+export CURL="curl -s --retry 5 --retry-delay 2"
+
+if [ ! -z "${APP_SELF_SIGNED}" ];then
+  export CURL="${CURL} -k"
+fi;
 
 for route in admin;do
-  if curl -s -k --retry 5 --retry-delay 2 ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' ; then
-      echo "✓   test api ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}"
+  if ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' ; then
+    echo "✓   test api ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}"
   else
-      echo -e "\e[31m❌ ${route} !\e[0m"
-      echo curl -k -XGET ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
-      curl -k -XGET ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
+    if (${CURL} -k ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' );then
+      echo -e "\e[33m⚠️   test ${route} (SSL certicate is invalid)\e[0m";
+    else
+      echo -e "\e[31m❌ test ${route} !\e[0m"
+      echo ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
+      $(echo ${CURL} | sed 's/ \-s / /') ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
       exit 1
-  fi
+    fi;
+  fi;
 done
 
 : ${IMPORT_SIZE:=10}
