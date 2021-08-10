@@ -260,7 +260,15 @@ for resource in ${KUBE_SERVICES}; do
                                 if [ "$ret" -eq "0" ] ; then
                                         printf "\r\033[2K%03d Wait for Loadbalancer to be ready" $timeout;
                                 else
-                                        if (curl -s -o /dev/null -k -XGET ${APP_SCHEME}://${APP_HOST}:${APP_PORT}); then
+                                        if [ ! -z "${SCW_DNS_SECRET_TOKEN}" -a -z "${SCW_DNS_UPDATE_IP}" ];then
+                                                export SCW_DNS_UPDATE_IP=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $4}');
+                                                if [ -z "${SCW_DNS_UPDATE_IP}" ];then
+                                                        echo -e "\r\033[2K\e[31m❌  loadblancer failed to get public IP" && exit 1;
+                                                fi
+                                                echo -e "\r\033[2K✓   loadbalancer got public IP ${SCW_DNS_UPDATE_IP}";
+                                                ./scripts/update_dns.sh
+                                        fi;
+                                        if (curl -s -o /dev/null -k --max-time 1 -XGET ${APP_SCHEME}://${APP_HOST}:${APP_PORT}); then
                                         ok="ok";
                                         else
                                         printf "\r\033[2K%03d Wait for Endpoints to be ready" $timeout;
@@ -272,14 +280,6 @@ for resource in ${KUBE_SERVICES}; do
                                 (echo -en "\r\033[2K\e[31m❌  loadbalancer is not ready !\e[0m\n" && (${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer) && exit 1)
                         else
                                 (echo -en "\r\033[2K✓   load balancer is ready\n")
-                        fi;
-                        if [ ! -z "${SCW_DNS_SECRET_TOKEN}" ];then
-                                export SCW_DNS_UPDATE_IP=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $4}');
-                                if [ -z "${SCW_DNS_UPDATE_IP}" ];then
-                                        echo -e "\e[31m❌  loadblancer failed to get public IP" && exit 1;
-                                fi
-                                echo -e "\r\033[2K✓   loadbalancer got public IP ${SCW_DNS_UPDATE_IP}";
-                                ./scripts/update_dns.sh
                         fi;
                 fi;
         fi;
