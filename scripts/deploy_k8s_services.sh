@@ -272,9 +272,15 @@ for resource in ${KUBE_SERVICES}; do
                                                 ./scripts/update_dns.sh
                                         fi;
                                         if (curl -s -o /dev/null -k --max-time 1 -XGET ${APP_SCHEME}://${APP_HOST}:${APP_PORT}); then
-                                        ok="ok";
+                                                ok="ok";
                                         else
-                                        printf "\r\033[2K%03d Wait for Endpoints to be ready" $timeout;
+                                                ((fails++))
+                                                printf "\r\033[2K%03d Wait for Endpoints to be ready" $timeout;
+                                                if [ $fails -gt 30 ];then
+                                                        # avoid DNS ttl latency
+                                                        ./scripts/update_dns_local.sh
+                                                        fails=0
+                                                fi;
                                         fi;
                                 fi;
                                 ((timeout--)); sleep 1 ;

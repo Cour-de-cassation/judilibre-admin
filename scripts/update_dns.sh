@@ -11,6 +11,13 @@ if [ -z "${APP_HOST}" ]; then
     echo -e "\e[31m❌  DNS - APP_HOST has to be set to update DNS" && exit 1;
 fi
 
+if (cat /etc/hosts | grep -q ${APP_HOST}); then
+    # clean all local DNS references to avoid confusion
+    cat /etc/hosts | grep -v ${APP_HOST} | awk -v ip=${SCW_DNS_UPDATE_IP} -v dns=${APP_HOST} '{print}END{print ip "\t" dns}' > /tmp/hosts
+    sudo cp /etc/hosts /etc/hosts.bak.$(date +%Y%m%d-%H%M)
+    sudo cp /tmp/hosts /etc/hosts
+fi
+
 SCW_DNS_ZONE=$(curl -s "${SCW_DNS_API}" -H "X-Auth-Token: ${SCW_DNS_SECRET_TOKEN}"  | jq -r '.dns_zones[0].domain')
 
 if [ -z "${SCW_DNS_ZONE}" ];then
