@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo echo -n
+
 #install bins if needed
 ./scripts/check_install.sh
 
@@ -252,6 +254,7 @@ for resource in ${KUBE_SERVICES}; do
         if [ "${resource}" == "loadbalancer" ]; then
                 ret=0;ok="";
                 if [ "${KUBE_TYPE}" != "openshift" ]; then
+                        fails=0
                         until [ "$timeout" -le 0 -o ! -z "$ok" ] ; do
                                 lb=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $1}');
                                 if [ ! -z "$lb" ]; then
@@ -297,7 +300,7 @@ export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 if [ -f "${ELASTIC_TEMPLATE}" ];then
         if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
                 if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > ${KUBE_INSTALL_LOG} 2>&1); then
-                        echo "🚀   elasticsearch templates";
+                        echo "🚀  elasticsearch templates";
                 else
                         echo -e "\e[31m❌  elasticsearch templates !\e[0m" && exit 1;
                 fi;
@@ -307,7 +310,7 @@ if [ -f "${ELASTIC_TEMPLATE}" ];then
 fi;
 if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
         if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/${ELASTIC_INDEX}" > ${KUBE_INSTALL_LOG} 2>&1); then
-                echo "🚀   elasticsearch default index";
+                echo "🚀  elasticsearch default index";
         else
                 echo -e "\e[31m❌  elasticsearch default index !\e[0m" && exit 1;
         fi;

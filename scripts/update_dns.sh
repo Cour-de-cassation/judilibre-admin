@@ -29,7 +29,7 @@ if [ ! -z "${SCW_DNS_RECORD_IP}" ];then
         if (curl -s -XPATCH "${SCW_DNS_API}/${SCW_DNS_ZONE}/records" -H "X-Auth-Token: ${SCW_DNS_SECRET_TOKEN}" -d ${SCW_DNS_DELETE_RECORD} | grep -q records);then
             echo "✓   DNS - deleted previous record for ${APP_DNS_SHORT}";
         else
-            echo -e "\e[31m❌  DNS - failed deleting previous record for ${APP_DNS_SHORT}" && exit 1;
+            echo "\e[31m❌  DNS - failed deleting previous record for ${APP_DNS_SHORT}" && exit 1;
         fi;
     else
         echo "✓   DNS - record ${APP_DNS_SHORT} already exists";
@@ -50,6 +50,6 @@ if [ -z "${SKIP}" ]; then
     if (curl -s -XPATCH "${SCW_DNS_API}/${SCW_DNS_ZONE}/records" -H "X-Auth-Token: ${SCW_DNS_SECRET_TOKEN}" -d ${SCW_DNS_RECORD} | grep -q ${APP_DNS_SHORT});then
         echo "🚀  DNS - set ${SCW_DNS_UPDATE_IP} to ${APP_DNS_SHORT}";
     else
-        echo -e "\e[31m❌  DNS - failed deleting previous record for ${APP_DNS_SHORT}" && exit 1;
+        echo "\e[31m❌  DNS - set ${SCW_DNS_UPDATE_IP} to ${APP_DNS_SHORT} !" && exit 1;
     fi
 fi

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo echo -n
+
 [ -z "${SCW_KUBE_SECRET_TOKEN}" -o -z "${SCW_KUBE_PROJECT_ID}" -o -z "${SCW_KUBE_PROJECT_NAME}" ] && \
     echo "Impossible de créer une instance sans SCW_PROJECT_NAME, SCW_PROJECT_ID ou SCW_SECRET_TOKEN" && exit 1;
 
@@ -47,7 +49,8 @@ if (curl -s "${SCW_KUBE_API}/${SCW_KUBE_ID}/kubeconfig?dl=1" -H "X-Auth-Token: $
     echo "✓   k8s kubeconfig ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} downloaded";
 fi
 
-# wait first ip / use workaround using server API as k8s API is very slow to get IP
+# wait first ip (first node to be ready)
+# we use workaround using server API as k8s API is very slow to get IP
 until [ "$timeout" -le 0 -o "${SCW_DNS_UPDATE_IP}" != "" ] ; do
         if [ -z "${SCW_K8S_NODENAME}" ]; then
             SCW_K8S_NODENAME=$(curl -s "${SCW_KUBE_API}/${SCW_KUBE_ID}/nodes" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" | jq -cr '.nodes[0].name' | grep -v null)
@@ -67,10 +70,10 @@ fi
 
 echo -e "\r\033[2K✓   k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} has public IP ${SCW_DNS_UPDATE_IP}";
 
-# update DNS with SCW_DNS_UPDATE_IP
-for host in ${APP_HOST} ${APP_HOST_SEARCH}; do
-    export APP_HOST=${host};
-    ./scripts/update_dns.sh;
-done;
+## update DNS with SCW_DNS_UPDATE_IP
+# for host in ${APP_HOST} ${APP_HOST_SEARCH}; do
+#     export APP_HOST=${host};
+#     ./scripts/update_dns.sh;
+# done;
 
 
