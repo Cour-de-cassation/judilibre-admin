@@ -99,7 +99,7 @@ else
                 if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
                         echo "✓   cert-manager";
                 else
-                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml 2>&1 > ${KUBE_INSTALL_LOG}); then
+                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.3/cert-manager.yaml 2>&1 > ${KUBE_INSTALL_LOG}); then
                                 echo "🚀  cert-manager";
                         else
                                 echo -e "\e[31m❌  cert-manager";
