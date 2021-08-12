@@ -37,6 +37,14 @@ if [ -z "${KUBECTL}" ]; then
 fi;
 
 #set up services to start
+
+if [ -z "${APP_RESERVED_IP}" ];then
+        export APP_RESERVED_IP_SPEC="#loadBalancerIP: None"
+else
+        export APP_RESERVED_IP_SPEC="loadBalancerIP: ${APP_RESERVED_IP}"
+        echo "✓   IP ${APP_RESERVED_IP} will be affected to ${APP_ID} loadbalancer";
+fi
+
 if [ -z ${KUBE_SERVICES} ];then
         export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
 fi;
@@ -263,7 +271,7 @@ for resource in ${KUBE_SERVICES}; do
                                 if [ "$ret" -eq "0" ] ; then
                                         printf "\r\033[2K%03d Wait for Loadbalancer to be ready" $timeout;
                                 else
-                                        if [ ! -z "${SCW_DNS_SECRET_TOKEN}" -a -z "${SCW_DNS_UPDATE_IP}" ];then
+                                        if [ ! -z "${SCW_DNS_SECRET_TOKEN}" -a -z "${APP_RESERVED_IP}" -a -z "${SCW_DNS_UPDATE_IP}" ];then
                                                 export SCW_DNS_UPDATE_IP=$(${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer | grep -v pending | egrep "${APP_ID}|traefik" | awk '{print $4}');
                                                 if [ -z "${SCW_DNS_UPDATE_IP}" ];then
                                                         echo -e "\r\033[2K\e[31m❌  loadblancer failed to get public IP" && exit 1;
@@ -276,7 +284,7 @@ for resource in ${KUBE_SERVICES}; do
                                         else
                                                 ((fails++))
                                                 printf "\r\033[2K%03d Wait for Endpoints to be ready" $timeout;
-                                                if [ $fails -gt 30 ];then
+                                                if [ $fails -gt 30 -a -z "${APP_RESERVED_IP}" ];then
                                                         # avoid DNS ttl latency
                                                         ./scripts/update_dns_local.sh
                                                         fails=0
@@ -288,7 +296,7 @@ for resource in ${KUBE_SERVICES}; do
                         if [ -z "$ok" ];then
                                 (echo -en "\r\033[2K\e[31m❌  loadbalancer is not ready !\e[0m\n" && (${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer) && exit 1)
                         else
-                                (echo -en "\r\033[2K✓   load balancer is ready\n")
+                                (echo -en "\r\033[2K✓   loadbalancer is ready\n")
                         fi;
                 fi;
         fi;

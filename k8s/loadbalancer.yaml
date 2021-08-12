@@ -11,6 +11,7 @@ metadata:
     #service.beta.kubernetes.io/scw-loadbalancer-force-internal-ip: "true"
 spec:
   type: LoadBalancer
+  ${APP_RESERVED_IP_SPEC}
   ports:
   - port: 80
     name: http

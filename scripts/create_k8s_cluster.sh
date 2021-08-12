@@ -7,7 +7,8 @@ sudo echo -n
 
 : ${SCW_CNI:="cilium"}
 : ${SCW_FLAVOR:="GP1-XS"}
-: ${SCW_KUBE_API:="https://api.scaleway.com/k8s/v1/regions/fr-par/clusters"}
+: ${SCW_REGION:="fr-par"}
+: ${SCW_KUBE_API:="https://api.scaleway.com/k8s/v1/regions/${SCW_REGION}/clusters"}
 : ${SCW_KUBE_NODES:=3}
 : ${SCW_KUBE_VERSION:="1.21.3"}
 : ${SCW_ZONE:="fr-par-1"}
