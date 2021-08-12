@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: ingress-nginx
   annotations:
     service.beta.kubernetes.io/scw-loadbalancer-proxy-protocol-v2: "*"
-    service.beta.kubernetes.io/scw-loadbalancer-force-internal-ip: "true"
+    #service.beta.kubernetes.io/scw-loadbalancer-force-internal-ip: "true"
 spec:
   type: LoadBalancer
   ports:
