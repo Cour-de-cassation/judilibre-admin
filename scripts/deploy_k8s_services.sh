@@ -45,6 +45,49 @@ else
         echo "✓   IP ${APP_RESERVED_IP} will be affected to ${APP_ID} loadbalancer";
 fi
 
+if [ -z "${APP_HOST_ALTER}" ];then
+        export TLS_ALTER_SPEC="#";
+        export HOST_ALTER_SPEC="#";
+        export CERT_ALTER_SPEC="#";
+else
+        export TLS_ALTER_SPEC=$(cat <<-TLS_ALTER_SPEC
+- hosts:
+    - ${APP_HOST_ALTER}
+    secretName: ${APP_ID}-alter-cert-${ACME}
+TLS_ALTER_SPEC
+);
+        export HOST_ALTER_SPEC=$(cat <<-HOST_ALTER_SPEC
+- host: ${APP_HOST_ALTER}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ${APP_ID}-svc
+            port:
+              number: 80
+HOST_ALTER_SPEC
+);
+        export CERT_ALTER_SPEC=$(cat <<-CERT_ALTER_SPEC
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ${APP_ID}-alter-cert-${ACME}
+  namespace: ${KUBE_NAMESPACE}
+spec:
+  commonName: ${APP_HOST_ALTER}
+  secretName: ${APP_ID}-alter-cert-${ACME}
+  dnsNames:
+    - ${APP_HOST_ALTER}
+  issuerRef:
+    name: letsencrypt-${ACME}
+    kind: Issuer
+CERT_ALTER_SPEC
+);
+fi
+
 if [ -z ${KUBE_SERVICES} ];then
         export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
 fi;
@@ -101,7 +144,7 @@ else
                         export KUBE_CONF_ROUTE=ingressroute;
                         export KUBE_CONF_LB=loadbalancer-traefik;
                 fi;
-                export KUBE_SERVICES="logging ${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE} ${KUBE_CONF_LB}";
+                export KUBE_SERVICES="logging ${KUBE_CONF_LB} ${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE}";
                 if [ -z "${ACME}" ]; then
                         #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
                         export ACME=acme;
@@ -109,7 +152,7 @@ else
                 if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
                         echo "✓   cert-manager";
                 else
-                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.3/cert-manager.yaml 2>&1 > ${KUBE_INSTALL_LOG}); then
+                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.4.3/cert-manager.yaml > ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  cert-manager";
                         else
                                 echo -e "\e[31m❌  cert-manager";
@@ -313,7 +356,7 @@ export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 
 if [ -f "${ELASTIC_TEMPLATE}" ];then
         if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
-                if (cat ${ELASTIC_TEMPLATE} | ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(</dev/stdin)" > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(cat ${ELASTIC_TEMPLATE})" > ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  elasticsearch templates";
                 else
                         echo -e "\e[31m❌  elasticsearch templates !\e[0m" && exit 1;

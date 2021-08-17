@@ -3,7 +3,7 @@
 
 : ${SCW_DNS_API:="https://api.scaleway.com/domain/v2beta1/dns-zones"}
 
-if [ -z "${SCW_DNS_UPDATE_IP}" -o -z ${SCW_DNS_SECRET_TOKEN} ]; then
+if [ -z "${SCW_DNS_UPDATE_IP}" -o -z "${SCW_DNS_SECRET_TOKEN}" ]; then
     exit 0;
 fi;
 

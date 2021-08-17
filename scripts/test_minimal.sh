@@ -9,15 +9,15 @@ fi;
 
 for route in admin;do
   if ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' ; then
-    echo "✓   test api ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}"
+    echo "✅  test api ${APP_HOST}/${route} ";
   else
     if (${CURL} -k ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' );then
-      echo -e "\e[33m⚠️   test ${route} (SSL certicate is invalid)\e[0m";
+      echo -e "\e[33m⚠️   test api ${APP_HOST}/${route} (invalid SSL cert)\e[0m";
     else
-      echo -e "\e[31m❌ test ${route} !\e[0m"
-      echo ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
-      $(echo ${CURL} | sed 's/ \-s / /') ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}
-      exit 1
+      echo -e "\e[31m❌ test ${APP_HOST}/${route} !\e[0m";
+      echo ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route};
+      $(echo ${CURL} | sed 's/ \-s / /') ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route};
+      exit 1;
     fi;
   fi;
 done

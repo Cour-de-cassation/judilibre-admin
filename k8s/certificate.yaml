@@ -11,3 +11,4 @@ spec:
   issuerRef:
     name: letsencrypt-${ACME}
     kind: Issuer
+${CERT_ALTER_SPEC}
