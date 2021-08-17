@@ -58,6 +58,14 @@ for TARGET in ${ENV_FILES};do
     unset SCW_DNS_UPDATE_IP
     export APP_HOST=${APP_HOST_ADMIN}
     export APP_HOST_ALTER_ADMIN=${APP_HOST_ALTER}
+    if [ ${ENV_NUMBER} -eq 1 ];then
+        export DYNAMIC_DNS_IP_ALTER=${APP_RESERVED_IP_SEARCH}
+    else
+        export DYNAMIC_DNS=${APP_HOST_ALTER_SEARCH}
+        export DYNAMIC_DNS_IP=${APP_RESERVED_IP_SEARCH}
+        export DYNAMIC_DNS_URL="${APP_SCHEME}://${APP_HOST_SEARCH}/healthcheck"
+        export DYNAMIC_DNS_TEST="disponible"
+    fi;
 
     ################################
     # step 2. create cluster
@@ -108,3 +116,5 @@ for TARGET in ${ENV_FILES};do
     fi;
 done;
 
+# activate dynamic dns if *_ALTER
+./scripts/update_dns_dynamic.sh || exit 1;
