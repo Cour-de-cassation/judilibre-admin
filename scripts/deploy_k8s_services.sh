@@ -237,9 +237,14 @@ export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | t
 #encode S3 secrets into base64 (for yaml config of secrets)
 export SCW_LOG_ACCESS_KEY_B64=$(echo -n ${SCW_LOG_ACCESS_KEY} | openssl base64)
 export SCW_LOG_SECRET_KEY_B64=$(echo -n ${SCW_LOG_SECRET_KEY} | openssl base64)
-export SCW_DATA_ACCESS_KEY_B64=$(echo -n ${SCW_DATA_ACCESS_KEY} | openssl base64)
-export SCW_DATA_SECRET_KEY_B64=$(echo -n ${SCW_DATA_SECRET_KEY} | openssl base64)
-
+if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
+        export SCW_DATA_ACCESS_KEY_B64=$(echo -n ${SCW_DATA_ACCESS_KEY} | openssl base64);
+        export SCW_DATA_SECRET_KEY_B64=$(echo -n ${SCW_DATA_SECRET_KEY} | openssl base64);
+else
+        # dummy keys for local deployment
+        export SCW_DATA_ACCESS_KEY_B64=Y2hhbmdlbWU=;
+        export SCW_DATA_SECRET_KEY_B64=Y2hhbmdlbWU=;
+fi;
 
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
