@@ -234,9 +234,12 @@ fi;
 : ${ELASTIC_SEARCH_PASSWORD:=changeme}
 export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | tr -d ':\n' | sed 's/\$2y/\$2a/')
 
-#encode S3 log secrets into base64
+#encode S3 secrets into base64 (for yaml config of secrets)
 export SCW_LOG_ACCESS_KEY_B64=$(echo -n ${SCW_LOG_ACCESS_KEY} | openssl base64)
 export SCW_LOG_SECRET_KEY_B64=$(echo -n ${SCW_LOG_SECRET_KEY} | openssl base64)
+export SCW_DATA_ACCESS_KEY_B64=$(echo -n ${SCW_DATA_ACCESS_KEY} | openssl base64)
+export SCW_DATA_SECRET_KEY_B64=$(echo -n ${SCW_DATA_SECRET_KEY} | openssl base64)
+
 
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
@@ -248,6 +251,11 @@ for resource in ${KUBE_SERVICES}; do
         NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;' | head -1);
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//' | head -1);
+        if [ ${resource} == "elasticsearch" ];then
+                NAMESPACE=${KUBE_NAMESPACE};
+                RESOURCENAME=${APP_GROUP};
+                RESOURCETYPE=Elasticsearch;
+        fi;
         if [ "${resource}" == "deployment" ]; then
                 # elastic secrets
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth > ${KUBE_INSTALL_LOG} 2>&1); then
@@ -363,6 +371,31 @@ if [ -f "${ELASTIC_TEMPLATE}" ];then
                 fi;
         else
                 echo "✓   elasticsearch templates";
+        fi;
+fi;
+
+: ${SCW_REGION:="fr-par"}
+: ${}
+if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
+        #                        'bucket': '${SCW_DATA_BUCKET}/${SCW_KUBE_PROJECT_NAME}/${SCW_ZONE}/${KUBE_NAMESPACE}',
+        ELASTIC_REPOSITORY="{
+                'type': 's3',
+                'settings': {
+                        'bucket': '${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}',
+                        'region': '${SCW_REGION}',
+                        'endpoint': 's3.fr-par.scw.cloud'
+                }
+        }"
+        ELASTIC_REPOSITORY=$(echo ${ELASTIC_REPOSITORY} | tr "'" '"' | jq -c '.')
+
+        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" 2>&1 | grep -q ${APP_GROUP}); then
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" > ${KUBE_INSTALL_LOG} 2>&1); then
+                        echo "🚀  elasticsearch set backup repository";
+                else
+                        echo -e "\e[31m❌  elasticsearch set backup repository !\e[0m" && exit 1;
+                fi;
+        else
+                echo "✓   elasticsearch set backup repository";
         fi;
 fi;
 if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then

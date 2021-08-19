@@ -91,14 +91,14 @@ for TARGET in ${ENV_FILES};do
     (cd judilibre-search && \
         ./scripts/init_deps.sh && \
         ./scripts/deploy_k8s_services.sh || exit 1);
+    timeout=${START_TIMEOUT}
     for APP_HOST in ${APP_HOST_SEARCH} ${APP_HOST_ALTER_SEARCH};do
-        timeout=${START_TIMEOUT}
         ret=1 ;\
         until [ "$timeout" -le "0" -o "$ret" -eq "0" ] ; do
             (cd judilibre-search && ./scripts/test_minimal.sh > /dev/null 2>&1);
             ret=$?;
             if [ "$ret" -eq "1" ]; then exit 1; fi ;
-            if [ "$ret" -eq "2" ] ; then printf "\r\033[2K%03d Wait for certificate validation" $timeout ; fi ;
+            printf "\r\033[2K%03d Wait for certificate validation" $timeout;
             ((timeout--));sleep 1;
         done;
         printf "\r\033[2K";
