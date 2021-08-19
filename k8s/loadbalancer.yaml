@@ -36,8 +36,8 @@ data:
   use-proxy-protocol: "true"
   no-tls-redirect-locations: "/.well-known/acme-challenge"
   #enable-opentracing: "true"
-  #enable-modsecurity: "true"
-  #enable-owasp-core-rules: "true"
+  enable-modsecurity: "true"
+  enable-owasp-core-rules: "true"
 ---
 # workaround https://github.com/compumike/hairpin-proxy
 # for bug https://github.com/jetstack/cert-manager/issues/466 in http01 solver
