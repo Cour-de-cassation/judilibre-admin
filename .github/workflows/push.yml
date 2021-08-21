@@ -22,7 +22,6 @@ jobs:
       ELASTIC_MEM_JVM: 512m
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownAndClusterDeletion
       ELASTIC_STORAGE_SIZE: 3Gi
-      ELASTIC_VERSION: 7.14.0
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
       KUBE_TYPE: k3s
       KUBE_ZONE: local
@@ -90,7 +89,6 @@ jobs:
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD }}
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
       ELASTIC_STORAGE_SIZE: 20Gi
-      ELASTIC_VERSION: 7.13.4
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
       KUBE_INGRESS: nginx
       KUBE_NAMESPACE: judilibre-scw-dev-par1-dev

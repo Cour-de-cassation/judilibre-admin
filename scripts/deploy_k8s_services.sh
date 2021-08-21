@@ -179,6 +179,11 @@ if [ ! -z "${APP_DEBUG}" ]; then
         env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
 fi;
 
+if [ -z "${ELASTIC_VERSION}" ];then
+        export ELASTIC_VERSION=7.14.0;
+fi;
+
+
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
 if [ "${KUBE_TYPE}" == "openshift" ]; then
