@@ -28,3 +28,17 @@ if ! (which htpasswd > /dev/null 2>&1); then
                 sudo yum install -y httpd-tools;
         fi;
 fi
+
+
+if ! (which rclone > /dev/null 2>&1); then
+        if [ "${OS_TYPE}" = "DEB" ]; then\
+                curl -s -O https://downloads.rclone.org/rclone-current-linux-amd64.deb;\
+                sudo dpkg -i rclone-current-linux-amd64.deb; \
+                rm rclone-*-linux-amd64*;\
+        fi;\
+        if [ "${OS_TYPE}" = "RPM" ]; then\
+                curl -s -O https://downloads.rclone.org/rclone-current-linux-amd64.rpm;\
+                sudo yum localinstall -y rclone-current-linux-amd64.rpm; \
+                rm rclone-*-linux-amd64*;\
+        fi;\
+fi;
