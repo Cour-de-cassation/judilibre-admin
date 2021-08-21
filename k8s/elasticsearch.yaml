@@ -81,10 +81,10 @@ spec:
             name: ${APP_GROUP}-stopwords
 ---
 # daily snaphots
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: elasticsearch-sample-snapshotter
+  name: elasticsearch-snapshotter
   namespace: ${KUBE_NAMESPACE}
 spec:
   schedule: "@daily"
@@ -103,7 +103,7 @@ spec:
             - /bin/bash
             args:
             - -c
-            - 'curl -s -i -k -u "elastic:$(</mnt/elastic/es-basic-auth/elastic)" -XPUT "https://${APP_GROUP}-es-http:9200/_snapshot/${APP_GROUP}/%3Csnapshot-%7Bnow%2Fd%7D%3E" | tee /dev/stderr | grep "200 OK"'
+            - 'curl -s -i -k -u "elastic:$(</mnt/elastic/es-basic-auth/elastic)" -XPUT "https://${APP_GROUP}-es-http:9200/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/%3Csnapshot-%7Bnow%2Fd%7D%3E" | tee /dev/stderr | grep "200 OK"'
           restartPolicy: OnFailure
           volumes:
           - name: es-basic-auth
