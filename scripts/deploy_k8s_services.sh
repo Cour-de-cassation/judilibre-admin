@@ -381,13 +381,32 @@ fi;
 
 : ${SCW_REGION:="fr-par"}
 if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
-        #                        'bucket': '${SCW_DATA_BUCKET}/${SCW_KUBE_PROJECT_NAME}/${SCW_ZONE}/${KUBE_NAMESPACE}',
+        export RCLONE_CONFIG_S3_TYPE=s3
+        export RCLONE_CONFIG_S3_ACCESS_KEY_ID=${SCW_DATA_ACCESS_KEY}
+        export RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=${SCW_DATA_SECRET_KEY}
+        export RCLONE_CONFIG_S3_ENV_AUTH=false
+        export RCLONE_CONFIG_S3_ENDPOINT=s3.${SCW_REGION}.scw.cloud
+        export RCLONE_CONFIG_S3_REGION=${SCW_REGION}
+        export RCLONE_CONFIG_S3_SERVER_SIDE_ENCRYPTION=
+        export RCLONE_CONFIG_S3_FORCE_PATH_STYLE=false
+        export RCLONE_CONFIG_S3_LOCATION_CONSTRAINT=
+        export RCLONE_CONFIG_S3_STORAGE_CLASS=
+        export RCLONE_CONFIG_S3_ACL=private
+        if (rclone -q ls s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1);then
+                echo "✓   elasticsearch s3 backup bucket";
+        else
+                if (rclone -q mkdir s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1);then
+                        echo "🚀  elasticsearch s3 backup bucket";
+                else
+                        echo -e "\e[31m❌  elasticsearch s3 backup bucket !\e[0m" && exit 1;
+                fi;
+        fi
         ELASTIC_REPOSITORY="{
                 'type': 's3',
                 'settings': {
                         'bucket': '${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}',
                         'region': '${SCW_REGION}',
-                        'endpoint': 's3.fr-par.scw.cloud'
+                        'endpoint': 's3.${SCW_REGION}.scw.cloud'
                 }
         }"
         ELASTIC_REPOSITORY=$(echo ${ELASTIC_REPOSITORY} | tr "'" '"' | jq -c '.')
