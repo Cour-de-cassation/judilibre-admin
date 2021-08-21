@@ -222,7 +222,7 @@ fi;
 
 #create configMap for elasticsearch stopwords
 : ${STOPWORDS:=./elastic/config/analysis/stopwords_judilibre.txt}
-if [[ ${APP_GROUP} == "judilibre*" ]];then
+if [ "${APP_GROUP}" == "judilibre" ];then
         RESOURCENAME=${APP_GROUP}-stopwords
         if (${KUBECTL} get configmap --namespace=${KUBE_NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   configmap ${APP_GROUP}/${RESOURCENAME}";
