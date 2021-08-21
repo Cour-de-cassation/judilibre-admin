@@ -3,7 +3,7 @@
 sudo echo -n
 
 [ -z "${SCW_KUBE_SECRET_TOKEN}" -o -z "${SCW_KUBE_PROJECT_ID}" -o -z "${SCW_KUBE_PROJECT_NAME}" ] && \
-    echo "Impossible de créer une instance sans SCW_PROJECT_NAME, SCW_PROJECT_ID ou SCW_SECRET_TOKEN" && exit 1;
+    echo "Impossible de créer une instance sans SCW_KUBE_PROJECT_NAME, SCW_KUBE_PROJECT_ID ou SCW_SECRET_TOKEN" && exit 1;
 
 : ${SCW_CNI:="cilium"}
 : ${SCW_FLAVOR:="GP1-XS"}
