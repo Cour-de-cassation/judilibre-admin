@@ -70,31 +70,81 @@ data:
       }
     }
     filter {
+      date {
+        match => [ "date" , "ISO8601" ]
+      }
       grok {
-        match => { "[kubernetes][host]" => "^(?<kubernetes_cluster_name>.*)-default-[^\-]*$" }
+        match => {
+          "[kubernetes][host]" => "^(?<kubernetes_cluster_name>.*)-default-[^\-]*$"
+        }
+        tag_on_failure => [ "kubernetes_cluster_name_error" ]
       }
       mutate {
         rename => {
           "[kubernetes_cluster_name]" => "[kubernetes][cluster_name]"
-          '[kubernetes][labels][app]' => '[kubernetes][labels][app.kubernetes.io/name]'
+          "[kubernetes][labels][app]" => "[kubernetes][labels][app.kubernetes.io/name]"
         }
       }
-      date {
-        match => [ "date" , "ISO8601" ]
+      grok {
+        match => {
+          "log" => "%{TIMESTAMP_ISO8601:container_timestamp} %{WORD:container_output} %{WORD:container_output_mode} %{GREEDYDATA:container_log}"
+        }
+        tag_on_failure => [ "kubernetes_log_parse_error" ]
       }
-      if [kubernetes][container_name] == "nginx-ingress-controller" {
-        grok {
-          match => { "log" => "%{COMBINEDAPACHELOG}+%{GREEDYDATA:extra_fields}" }
+      if [container_output] {
+          mutate {
+            remove_field => ["log"]
+          }
+        if [container_output] == "stderr" {
+          mutate {
+            add_tag => ["container_error"]
+          }
         }
-        geoip {
-          source => "clientip"
-        }
-        mutate {
-          add_field => { "log_type" => "web_access" }
+        if [kubernetes][container_name] == "nginx-ingress-controller" {
+          if [container_output] != "stderr" {
+            mutate {
+              add_field => { "log_type" => "web_access" }
+            }
+            grok {
+              match => { "container_log" => "%{IPORHOST:clientip} (?:-|(%{WORD}.%{WORD})) (-|%{USER:http_user}) \[%{HTTPDATE:timestamp_request}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:status;long} (?:%{NUMBER:body_bytes_sent;long}|-) (?:\"(?:%{URI:http_referrer}|-)\") \"%{DATA:http_user_agent}\" %{NUMBER:request_length;long} %{NUMBER:request_time;double} \[(?:%{DATA:proxy_upstream_name})\] \[(?:%{DATA:proxy_alternative_upstream_name})\] (-|%{NOTSPACE:upstream_addr}) (-|%{NUMBER:upstream_response_length;long}) (-|%{NUMBER:upstream_response_time;double}) (-|%{NUMBER:upstream_status;long}) %{NOTSPACE:request_id}" }
+            }
+            if "_grokparsefailure" in [tags] {
+              mutate {
+                add_tag => [ "nginx_log_parse_error" ]
+              }
+            } else {
+              mutate {
+                remove_field => ["container_log"]
+              }
+              geoip {
+                source => "clientip"
+              }
+            }
+          } else {
+            mutate {
+              add_field => { "log_type" => "web_error" }
+            }
+          }
+        } else if [kubernetes][container_name] == "judilibre-search-deployment" {
+          mutate {
+            add_field => { "log_type" => "judilibre-search" }
+          }
+        } else if [kubernetes][container_name] == "judilibre-admin-deployment" {
+          mutate {
+            add_field => { "log_type" => "judilibre-admin" }
+          }
+        } else if [kubernetes][container_name] =~ /^judilibre-es-.*/ {
+          mutate {
+            add_field => { "log_type" => "elasticsearch" }
+          }
+        } else {
+          mutate {
+            add_field => { "log_type" => "kubernetes" }
+          }
         }
       } else {
         mutate {
-          add_field => { "log_type" => "k8s" }
+          add_field => { "log_type" => "unparsed" }
         }
       }
     }
