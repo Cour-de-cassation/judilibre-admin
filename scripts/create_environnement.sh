@@ -2,9 +2,6 @@
 
 sudo echo -n
 
-: ${SCW_REGION:="fr-par"}
-: ${SCW_LB_IP_API:="https://api.scaleway.com/lb/v1/regions/${SCW_REGION}/ips"}
-
 if [ -z "${ENV_FILES}" ];then
     echo -e "\e[31m❌  your must provide ENV_FILES to deploy targets" && exit 1;
 fi
@@ -17,20 +14,26 @@ ENV_NUMBER=0
 
 for TARGET in ${ENV_FILES};do
     ((ENV_NUMBER++))
-    export export $(cat ${TARGET} | sed 's/#.*//g' | xargs)
+    unset APP_RESERVED_IP APP_RESERVED_IP_SEARCH
+    export $(cat ${TARGET} | sed 's/#.*//g' | xargs)
 
     ##############################
     # step 1. reserve IPs of LB and update DNS
     echo "▶️   reserve IPs and set DNS for ${TARGET}";
     #
     # IP of admin API
+    export SCW_LB_IP_API="https://api.scaleway.com/lb/v1/zones/${SCW_ZONE}/ips"
     export APP_HOST_ADMIN=${APP_HOST}
-    export APP_RESERVED_IP=$(curl -s -X POST "${SCW_LB_IP_API}" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -H "Content-Type: application/json" \
--d "{\"project_id\":\"$SCW_KUBE_PROJECT_ID\"}" | jq -r .ip_address | grep -v null)
     if [ -z "${APP_RESERVED_IP}" ];then
-        echo -e "\r\033[2K\e[31m❌  IP reservation failed for ${APP_ID} ![0m" && exit 1
+        export APP_RESERVED_IP=$(curl -s -X POST "${SCW_LB_IP_API}" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -H "Content-Type: application/json" \
+    -d "{\"project_id\":\"$SCW_KUBE_PROJECT_ID\"}" | jq -r .ip_address | grep -v null)
+        if [ -z "${APP_RESERVED_IP}" ];then
+            echo -e "\r\033[2K\e[31m❌  IP reservation failed for ${APP_ID} ![0m" && exit 1
+        else
+            echo "🚀  IP ${APP_RESERVED_IP} reserved for ${APP_ID}"
+        fi;
     else
-        echo "🚀   IP ${APP_RESERVED_IP} reserved for ${APP_ID}"
+        echo "✓   IP ${APP_RESERVED_IP} reserved for ${APP_ID}"
     fi;
     export SCW_DNS_UPDATE_IP=${APP_RESERVED_IP}
     ./scripts/update_dns.sh || exit 1;
@@ -40,12 +43,16 @@ for TARGET in ${ENV_FILES};do
     fi;
     #
     # IP of search API
-    export APP_RESERVED_IP_SEARCH=$(curl -s -X POST "${SCW_LB_IP_API}" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -H "Content-Type: application/json" \
--d "{\"project_id\":\"$SCW_KUBE_PROJECT_ID\"}" | jq -r .ip_address | grep -v null)
     if [ -z "${APP_RESERVED_IP_SEARCH}" ];then
-        echo -e "\r\033[2K\e[31m❌  IP reservation failed for ${APP_ID_SEARCH} ![0m" && exit 1
+        export APP_RESERVED_IP_SEARCH=$(curl -s -X POST "${SCW_LB_IP_API}" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -H "Content-Type: application/json" \
+    -d "{\"project_id\":\"$SCW_KUBE_PROJECT_ID\"}" | jq -r .ip_address | grep -v null)
+        if [ -z "${APP_RESERVED_IP_SEARCH}" ];then
+            echo -e "\r\033[2K\e[31m❌  IP reservation failed for ${APP_ID_SEARCH} ![0m" && exit 1
+        else
+            echo "🚀  IP ${APP_RESERVED_IP_SEARCH} reserved for ${APP_ID_SEARCH}"
+        fi;
     else
-        echo "🚀  IP ${APP_RESERVED_IP_SEARCH} reserved for ${APP_ID_SEARCH}"
+        echo "✓   IP ${APP_RESERVED_IP_SEARCH} reserved for ${APP_ID_SEARCH}"
     fi;
     export APP_HOST=${APP_HOST_SEARCH}
     export SCW_DNS_UPDATE_IP=${APP_RESERVED_IP_SEARCH}
@@ -63,7 +70,7 @@ for TARGET in ${ENV_FILES};do
     else
         export DYNAMIC_DNS=${APP_HOST_ALTER_SEARCH}
         export DYNAMIC_DNS_IP=${APP_RESERVED_IP_SEARCH}
-        export DYNAMIC_DNS_URL="${APP_SCHEME}://${APP_HOST_SEARCH}/healthcheck"
+        export DYNAMIC_DNS_URL="${APP_SCHEME}://${APP_HOST_ALTER_SEARCH}/healthcheck"
         export DYNAMIC_DNS_TEST="disponible"
     fi;
 
