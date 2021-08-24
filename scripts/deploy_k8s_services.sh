@@ -302,6 +302,16 @@ for resource in ${KUBE_SERVICES}; do
                         fi;
                 fi;
         fi;
+        if [ "${ressource}" == "issuer" ]; then
+                ret=1 ;
+                until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do
+                        (${KUBECTL} get pods -n cert-manager -l app=cert-manager -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}' | grep -q True);
+                        ret=$? ;
+                        if [ "$ret" -ne "0" ] ; then printf "\r\033[2K%03d Wait for cert-manager to be ready" $timeout ; fi ;
+                        ((timeout--)); sleep 1 ;
+                done ;
+                echo -en "\r\033[2K";
+        fi;
         if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
