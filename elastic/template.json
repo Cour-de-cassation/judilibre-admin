@@ -208,6 +208,9 @@
         "type": "flattened",
         "index": false
       },
+      "fileType": {
+        "type": "keyword"
+      },
       "zones": {
         "type": "flattened",
         "index": false

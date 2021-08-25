@@ -281,8 +281,43 @@ async function indexDecision(decision) {
   if (decision.bulletin) {
     document.bulletin = decision.bulletin;
   }
-  if (decision.files) {
+  if (decision.files && Array.isArray(decision.files)) {
     document.files = decision.files;
+    const fileType = [];
+    for (let i = 0; i < decision.files.length; i++) {
+      let type = decision.files[i].type;
+      if (typeof type === 'string') {
+        type = parseInt(type, 10);
+      }
+      let code;
+      switch (type) {
+        case 1:
+          code = 'prep_rapp';
+          break;
+        case 2:
+          code = 'prep_avis';
+          break;
+        case 3:
+          code = 'prep_oral';
+          break;
+        case 4:
+          code = 'comm_comm';
+          break;
+        case 5:
+          code = 'comm_note';
+          break;
+        case 6:
+          code = 'comm_lett';
+          break;
+        case 7:
+          code = 'comm_trad';
+          break;
+      }
+      if (code) {
+        fileType.push(code);
+      }
+    }
+    document.fileType = fileType;
   }
   if (decision.themes) {
     document.themes = decision.themes;
