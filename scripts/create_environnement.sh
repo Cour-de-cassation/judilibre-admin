@@ -2,6 +2,10 @@
 
 sudo echo -n
 
+if [ -z "${KUBE_INSTALL_LOG}" ];then
+    export KUBE_INSTALL_LOG=$(pwd)/k8s-$(date +%Y%m%d_%H%M).log;
+fi;
+
 if [ -z "${ENV_FILES}" ];then
     echo -e "\e[31m❌  your must provide ENV_FILES to deploy targets" && exit 1;
 fi

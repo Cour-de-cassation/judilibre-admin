@@ -2,6 +2,14 @@
 
 sudo echo -n
 
+if [ ! -z "${ENV_FILE}" ];then
+    export $(cat ${TARGET} | sed 's/#.*//g' | xargs);
+fi;
+
+if [ ! -z "${ENV_VARS}" ];then
+    export ${ENV_VARS};
+fi;
+
 #install bins if needed
 ./scripts/check_install.sh
 
@@ -37,7 +45,6 @@ if [ -z "${KUBECTL}" ]; then
 fi;
 
 #set up services to start
-
 if [ -z "${APP_RESERVED_IP}" ];then
         export APP_RESERVED_IP_SPEC="#loadBalancerIP: None"
 else
