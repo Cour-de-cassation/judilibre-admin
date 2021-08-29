@@ -109,7 +109,7 @@ if [ ! -z "${SCW_KUBE_SECURITYGROUP_ID}" ];then
          && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_443}" > ${KUBE_INSTALL_LOG} 2>&1) \
          && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_80}"  > ${KUBE_INSTALL_LOG} 2>&1) \
     );then
-            echo "🚀  k8s security group";
+            echo -e "\r\033[2K🚀  k8s security group";
     else
         echo -e "\r\033[2K\e[31m❌  k8s security group !" && exit 1;
     fi

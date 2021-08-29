@@ -374,7 +374,7 @@ for resource in ${KUBE_SERVICES}; do
                                 ((timeout--)); sleep 1 ;
                         done ;
                         if [ -z "$ok" ];then
-                                (echo -en "\r\033[2K\e[31m❌  loadbalancer is not ready !\e[0m\n" && (${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer) && exit 1)
+                                echo -en "\r\033[2K\e[31m❌  loadbalancer is not ready !\e[0m\n" && (${KUBECTL} get service --namespace=kube-system | grep -i loadbalancer) && exit 1
                         else
                                 (echo -en "\r\033[2K✓   loadbalancer is ready\n")
                         fi;
