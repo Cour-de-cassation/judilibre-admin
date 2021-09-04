@@ -167,11 +167,23 @@
       },
       "themes": {
         "type": "text",
-        "analyzer": "light_french"
+        "analyzer": "light_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "summary": {
         "type": "text",
-        "analyzer": "medium_french"
+        "analyzer": "medium_french",
+        "fields": {
+          "exact": {
+            "type": "text",
+            "analyzer": "exact_french"
+          }
+        }
       },
       "visa": {
         "type": "text",

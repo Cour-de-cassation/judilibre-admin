@@ -65,8 +65,12 @@ api.post(
     },
     'decisions.*.number': {
       in: 'body',
+      toArray: true,
+    },
+    'decisions.*.number.*': {
+      in: 'body',
       isString: true,
-      errorMessage: `Decision has no number.`,
+      errorMessage: `Decision.number must be an array of strings.`,
       optional: false,
     },
     'decisions.*.publication': {
@@ -244,7 +248,9 @@ async function indexDecision(decision) {
   document.chamber = decision.chamber;
   document.decision_date = decision.decision_date;
   document.jurisdiction = decision.jurisdiction;
-  document.number = decision.number.replace(/[^\w\d]/gm, '').trim();
+  document.number = decision.number.map((item) => {
+    return item.replace(/[^\w\d]/gm, '').trim();
+  });
   document.numberFull = decision.number;
   document.publication = decision.publication;
   document.solution = decision.solution;
