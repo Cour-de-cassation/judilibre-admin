@@ -318,6 +318,9 @@ async function indexDecision(decision) {
         case 7:
           code = 'comm_trad';
           break;
+        case 8:
+          code = 'comm_nora';
+          break;
       }
       if (code) {
         fileType.push(code);
