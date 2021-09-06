@@ -183,7 +183,7 @@
       },
       "themes": {
         "type": "text",
-        "analyzer": "light_french",
+        "analyzer": "medium_french",
         "fields": {
           "exact": {
             "type": "text",
