@@ -330,6 +330,7 @@ async function indexDecision(decision) {
   }
   if (decision.themes) {
     document.themes = decision.themes;
+    document.themesFilter = decision.themes;
   }
   if (decision.zones) {
     document.zones = decision.zones;

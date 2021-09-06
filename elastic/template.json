@@ -191,6 +191,9 @@
           }
         }
       },
+      "themesFilter": {
+        "type": "keyword"
+      },
       "summary": {
         "type": "text",
         "analyzer": "medium_french",
