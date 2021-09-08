@@ -59,7 +59,7 @@ async function getAdmin(query) {
       response.result = deleteResult.body;
       break;
     case 'refresh_template':
-      const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'elastic', 'template-medium.json')));
+      const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
       const refreshResult = await Elastic.client.indices.putTemplate({
         name: 't_judilibre',
         create: false,
@@ -68,7 +68,7 @@ async function getAdmin(query) {
       response.result = refreshResult.body;
       break;
     case 'show_template':
-      const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'elastic', 'template-medium.json')));
+      const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
       const actual = await Elastic.client.indices.getTemplate({
         name: 't_judilibre',
       });
