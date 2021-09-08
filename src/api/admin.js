@@ -6,7 +6,7 @@ const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
 const Elastic = require('../modules/elastic');
 const route = 'admin';
-const commands = ['delete_all', 'refresh_template'];
+const commands = ['delete_all', 'refresh_template', 'test'];
 
 api.get(
   `/${route}`,
@@ -66,6 +66,14 @@ async function getAdmin(query) {
         body: template,
       });
       response.result = refreshResult.body;
+      break;
+    case 'test':
+      const ping = await Elastic.client.ping({});
+      if (ping.body === true && ping.statusCode === 200) {
+        response.result = 'disponible';
+      } else {
+        response.result = 'indisponible';
+      }
       break;
   }
   return response;
