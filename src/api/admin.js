@@ -6,7 +6,7 @@ const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
 const Elastic = require('../modules/elastic');
 const route = 'admin';
-const commands = ['delete_all', 'refresh_template', 'test'];
+const commands = ['delete_all', 'refresh_template', 'show_template', 'test'];
 
 api.get(
   `/${route}`,
