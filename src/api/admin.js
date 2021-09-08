@@ -67,6 +67,16 @@ async function getAdmin(query) {
       });
       response.result = refreshResult.body;
       break;
+    case 'show_template':
+      const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'elastic', 'template-medium.json')));
+      const actual = await Elastic.client.indices.getTemplate({
+        name: 't_judilibre',
+      });
+      response.result = {
+        expected: expected,
+        actual: actual.body,
+      };
+      break;
     case 'test':
       const ping = await Elastic.client.ping({});
       if (ping.body === true && ping.statusCode === 200) {
