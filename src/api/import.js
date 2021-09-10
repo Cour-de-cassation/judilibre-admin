@@ -180,6 +180,13 @@ api.post(
       errorMessage: `Decision.themes must be an array.`,
       optional: true,
     },
+    'decisions.*.lowInterest': {
+      in: 'body',
+      isBoolean: true,
+      toBoolean: true,
+      errorMessage: `Decision.lowInterest must be a boolean.`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
@@ -331,6 +338,11 @@ async function indexDecision(decision) {
   if (decision.themes) {
     document.themes = decision.themes;
     document.themesFilter = decision.themes;
+  }
+  if (decision.lowInterest) {
+    decision.lowInterest = decision.lowInterest === true;
+  } else {
+    decision.lowInterest = false;
   }
   if (decision.zones) {
     document.zones = decision.zones;
