@@ -187,7 +187,7 @@ if [ ! -z "${APP_DEBUG}" ]; then
 fi;
 
 if [ -z "${ELASTIC_VERSION}" ];then
-        export ELASTIC_VERSION=7.14.0;
+        export ELASTIC_VERSION=7.14.1;
 fi;
 
 
