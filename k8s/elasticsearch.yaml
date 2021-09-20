@@ -88,6 +88,8 @@ metadata:
   namespace: ${KUBE_NAMESPACE}
 spec:
   schedule: "@daily"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -104,8 +106,9 @@ spec:
             - /bin/sh
             args:
             - -c
-            - 'curl -s -i -k -XPUT "https://elastic:$(cat /tmp/es-basic-auth/elastic)@${APP_GROUP}-es-http:9200/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/%3Csnapshot-%7Bnow%2Fd%7D%3E" | tee /dev/stderr | grep "200 OK"'
-          restartPolicy: OnFailure
+            - 'curl -s -i -k -XPUT "https://elastic:$(cat /tmp/es-basic-auth/elastic)@${APP_GROUP}-es-http:9200/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/%3Csnapshot-%7Bnow%2Fm%7D%3E" | tee /dev/stderr | grep "200 OK"'
+          restartPolicy: Never
+          activeDeadlineSeconds: 30
           volumes:
           - name: es-basic-auth
             secret:
