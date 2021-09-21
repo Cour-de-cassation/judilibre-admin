@@ -7,11 +7,11 @@ if [ ! -z "${APP_SELF_SIGNED}" ];then
   export CURL="${CURL} -k"
 fi;
 
-for route in admin;do
-  if ${CURL} ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' ; then
+for route in "admin?command=test";do
+  if ${CURL} "${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}" | grep -q 'disponible' ; then
     echo "✅  test api ${APP_HOST}/${route} ";
   else
-    if (${CURL} -k ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route} | grep -q '"route":"GET /'${route}'"' );then
+    if ("${CURL} -k ${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}" | grep -q 'disponible' );then
       echo -e "\e[33m⚠️   test api ${APP_HOST}/${route} (invalid SSL cert)\e[0m";
     else
       echo -e "\e[31m❌ test ${APP_HOST}/${route} !\e[0m";
