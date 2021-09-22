@@ -46,7 +46,8 @@ data:
   # ======================================================
   fluent-bit.conf: |
     [SERVICE]
-        Flush         1
+        Flush         5
+        Grace         5
         Log_Level     info
         Daemon        off
         Parsers_File  parsers.conf
@@ -64,10 +65,26 @@ data:
         Tag               kube.*
         Path              /var/log/containers/*.log
         Parser            docker
+        Docker_Mode       On
         DB                /var/log/flb_kube.db
-        Mem_Buf_Limit     5MB
+        Mem_Buf_Limit     10MB
         Skip_Long_Lines   On
         Refresh_Interval  10
+
+    [INPUT]
+        Name cpu
+        Tag  log
+        Interval_Sec  60
+
+    [INPUT]
+        Name disk
+        Tag  log
+        Interval_Sec  60
+
+    [INPUT]
+        Name mem
+        Tag  log
+        Interval_Sec  60
 
   filter-kubernetes.conf: |
     [FILTER]
@@ -79,9 +96,22 @@ data:
         Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
         Merge_Log_Key       log_processed
+        Keep_Log            Off
         K8S-Logging.Parser  On
         K8S-Logging.Exclude Off
 
+    [FILTER]
+        Name                nest
+        Match               *
+        Wildcard            pod_name
+        Operation lift
+        Nested_under kubernetes
+        Add_prefix   kubernetes_
+
+    [FILTER]
+        Name          rewrite_tag
+        Match         kube.*
+        Rule          $kubernetes_pod_name ^.*$ log false
 
   parsers.conf: |
     [PARSER]
@@ -126,12 +156,11 @@ data:
         bucket                        ${SCW_LOG_BUCKET}
         region                        fr-par
         endpoint                      s3.fr-par.scw.cloud
-        total_file_size               1M
+        total_file_size               50M
         upload_timeout                1m
         workers                       1
         use_put_object                On
-        s3_key_format                 /${SCW_KUBE_PROJECT_NAME}/${SCW_ZONE}/${KUBE_NAMESPACE}/kube.var.log.containers/$TAG[5]/$TAG[4]/%Y%m/%Y%m%d/%Y%m%d-%H/%Y%m%d-%H%M%S_$UUID.jsonl
-        s3_key_format_tag_delimiters  ._
+        s3_key_format                 /${SCW_KUBE_PROJECT_NAME}/${SCW_ZONE}/${KUBE_NAMESPACE}/%Y%m/%Y%m%d/%Y%m%d-%H%M_$UUID.jsonl
 ---
 apiVersion: v1
 kind: Secret
