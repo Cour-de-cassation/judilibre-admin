@@ -29,7 +29,8 @@ fi;
 : ${SCW_REGION:="fr-par"}
 : ${SCW_KUBE_API:="https://api.scaleway.com/k8s/v1/regions/${SCW_REGION}/clusters"}
 : ${SCW_KUBE_NODES:=3}
-: ${SCW_KUBE_VERSION:="1.22.1"}
+: ${SCW_KUBE_VERSION:="1.22.2"}
+
 : ${SCW_ZONE:="fr-par-1"}
 : ${SCW_SERVER_API:="https://api.scaleway.com/instance/v1/zones/${SCW_ZONE}/servers"}
 : ${SCW_SECURITYGROUP_API:="https://api.scaleway.com/instance/v1/zones/${SCW_ZONE}/security_groups"}
