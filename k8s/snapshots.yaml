@@ -1,0 +1,35 @@
+# snaphots and cleaning
+# keep every 5 minutes of last hour, hours of day and days
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elasticsearch-snapshotter
+  namespace: ${KUBE_NAMESPACE}
+spec:
+  schedule: "0/5 * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 30
+      template:
+        spec:
+          containers:
+          - name: snapshotter
+            image: curlimages/curl:latest
+            volumeMounts:
+              - name: es-basic-auth
+                mountPath: /tmp/es-basic-auth
+                readOnly: true
+            command:
+            - /bin/sh
+            args:
+            - -c
+            - 'curl -s -i -k -XPUT "https://elastic:$(cat /tmp/es-basic-auth/elastic)@${APP_GROUP}-es-http:9200/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/snapshot-$(date +%Y.%m.%d-%H.%M)" | tee /dev/stderr | grep "200 OK" && curl -s -i -k "https://elastic:$(cat /tmp/es-basic-auth/elastic)@${APP_GROUP}-es-http:9200/_cat/snapshots/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" | sed "s/ .*//" | egrep -v "^snapshot-($(date +%Y.%m.%d-[0-9]*.00)|$(date +%Y.%m.%d-%H.*)|[0-9]*.[0-9]*.[0-9]*|[0-9]*.[0-9]*.[0-9]*-00.00)$" | xargs -I{} curl -s -i -k -X DELETE "https://elastic:$(cat /tmp/es-basic-auth/elastic)@${APP_GROUP}-es-http:9200/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/{}"'
+          restartPolicy: Never
+          volumes:
+          - name: es-basic-auth
+            secret:
+              secretName: ${APP_GROUP}-es-elastic-user
