@@ -25,6 +25,10 @@ fi
 
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
+if [ -z "${IP_WHITELIST}" ];then
+        export IP_WHITELIST="0.0.0.0/0"
+fi
+
 if [ -z "${KUBECTL}" ]; then
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 if (which oc > /dev/null); then
@@ -322,7 +326,10 @@ for resource in ${KUBE_SERVICES}; do
         if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
-                if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - > ${KUBE_INSTALL_LOG} 2>&1); then
+                if [ "${resource}" == "ingress" ]; then
+                        export IP_WHITELIST=$(./scripts/whitelist.sh)
+                fi
+                if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
                 else
                         echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1;
