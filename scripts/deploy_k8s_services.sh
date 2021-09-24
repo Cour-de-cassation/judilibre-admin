@@ -150,7 +150,7 @@ if [ -z ${KUBE_SERVICES} ];then
                                 export KUBE_CONF_ROUTE=ingressroute;
                                 export KUBE_CONF_LB=loadbalancer-traefik;
                         fi;
-                        export KUBE_SERVICES="logging ${KUBE_CONF_LB} ${KUBE_SERVICES} issuer certificate ${KUBE_CONF_ROUTE}";
+                        export KUBE_SERVICES="logging ${KUBE_CONF_LB} ${KUBE_SERVICES} snapshots issuer certificate ${KUBE_CONF_ROUTE}";
                         if [ -z "${ACME}" ]; then
                                 #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
                                 export ACME=acme;
