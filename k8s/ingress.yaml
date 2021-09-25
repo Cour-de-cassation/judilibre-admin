@@ -6,6 +6,12 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
     nginx.ingress.kubernetes.io/whitelist-source-range: "${IP_WHITELIST}"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      error_page 403 @forbidden;
+      location @forbidden {
+        internal;
+        return 200 "";
+      }
 spec:
   ingressClassName: nginx
   tls:
