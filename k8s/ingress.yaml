@@ -9,8 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/server-snippet: |
       error_page 403 @forbidden;
       location @forbidden {
-        internal;
-        return 200 "";
+        return 301 https://www.courdecassation.fr;
       }
 spec:
   ingressClassName: nginx
