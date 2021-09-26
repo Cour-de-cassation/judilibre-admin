@@ -447,7 +447,7 @@ if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
                         echo "🚀  elasticsearch set backup repository";
                         ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}')
                         if [ ! -z "${ELASTIC_SNAPSHOT}" ];then
-                                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPOST "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/${ELASTIC_SNAPSHOT}/_restore" >> ${KUBE_INSTALL_LOG} 2>&1);then
+                                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s --fail -k -XPOST "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/${ELASTIC_SNAPSHOT}/_restore" -H 'Content-Type: application/json' -d '{"indices":"'${ELASTIC_INDEX'"}' >> ${KUBE_INSTALL_LOG} 2>&1);then
                                         echo "🔄  elasticsearch backup ${ELASTIC_SNAPSHOT} restored";
                                 else
                                         echo -e "\e[31m❌  elasticsearch backup ${ELASTIC_SNAPSHOT} not restored !\e[0m" && exit 1;
