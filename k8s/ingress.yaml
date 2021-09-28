@@ -5,6 +5,12 @@ metadata:
   namespace: ${KUBE_NAMESPACE}
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    nginx.ingress.kubernetes.io/whitelist-source-range: "${IP_WHITELIST}"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      error_page 403 @forbidden;
+      location @forbidden {
+        return 301 https://www.courdecassation.fr;
+      }
 spec:
   ingressClassName: nginx
   tls:

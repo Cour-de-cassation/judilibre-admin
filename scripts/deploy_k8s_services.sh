@@ -25,6 +25,10 @@ fi
 
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
+if [ -z "${IP_WHITELIST}" ];then
+        export IP_WHITELIST="0.0.0.0/0"
+fi
+
 if [ -z "${KUBECTL}" ]; then
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 if (which oc > /dev/null); then
@@ -121,7 +125,7 @@ if [ -z ${KUBE_SERVICES} ];then
                                 if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
                                         ./scripts/docker-build.sh;
                                         docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
-                                        (sudo k3s ctr image import /tmp/img.tar > ${KUBE_INSTALL_LOG} 2>&1);
+                                        (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
                                         echo -e "⤵️   Docker image imported to k3s";
                                         rm /tmp/img.tar;
                                 fi;
@@ -130,7 +134,7 @@ if [ -z ${KUBE_SERVICES} ];then
                                 minikube start;
                                 if ! (minikube image list | grep -q ${DOCKER_IMAGE}); then
                                         ./scripts/docker-build.sh;
-                                        (minikube image load ${DOCKER_IMAGE} > ${KUBE_INSTALL_LOG} 2>&1);
+                                        (minikube image load ${DOCKER_IMAGE} >> ${KUBE_INSTALL_LOG} 2>&1);
                                         echo -e "⤵️   Docker image imported to minikube";
                                 fi;
                         fi;
@@ -158,7 +162,7 @@ if [ -z ${KUBE_SERVICES} ];then
                         if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
                                 echo "✓   cert-manager";
                         else
-                                if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml > ${KUBE_INSTALL_LOG} 2>&1); then
+                                if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
                                         echo "🚀  cert-manager";
                                 else
                                         echo -e "\e[31m❌  cert-manager";
@@ -194,11 +198,11 @@ fi;
 #create namespace first
 RESOURCENAME=$(envsubst < k8s/namespace.yaml | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
 if [ "${KUBE_TYPE}" == "openshift" ]; then
-        if (${KUBECTL} get namespace ${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1); then
+        if (${KUBECTL} get namespace ${KUBE_NAMESPACE} >> ${KUBE_INSTALL_LOG} 2>&1); then
 
 		echo "✓   namespace ${KUBE_NAMESPACE}";
         else
-                if (${KUBECTL} new-project ${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} new-project ${KUBE_NAMESPACE} >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  namespace ${KUBE_NAMESPACE}";
                 else
                         echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
@@ -208,7 +212,7 @@ else
         if (${KUBECTL} get namespaces --namespace=${KUBE_NAMESPACE} | grep -v 'No resources' | grep -q ${KUBE_NAMESPACE}); then
                 echo "✓   namespace ${KUBE_NAMESPACE}";
         else
-                if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (envsubst < k8s/namespace.yaml | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  namespace ${KUBE_NAMESPACE}";
                 else
                         echo -e "\e[31m❌  namespace ${KUBE_NAMESPACE}" && exit 1;
@@ -217,10 +221,10 @@ else
 fi;
 
 #install elasticsearch kube cluster controller
-if (${KUBECTL} get elasticsearch > ${KUBE_INSTALL_LOG} 2>&1); then
+if (${KUBECTL} get elasticsearch >> ${KUBE_INSTALL_LOG} 2>&1); then
         echo "✓   elasticsearch k8s controller";
 else
-        if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.7.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.7.0/operator.yaml) > ${KUBE_INSTALL_LOG} 2>&1); then
+        if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.7.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.7.0/operator.yaml) >> ${KUBE_INSTALL_LOG} 2>&1); then
                 echo "🚀  elasticsearch k8s controller";
         else
                 echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
@@ -235,7 +239,7 @@ if [ "${APP_GROUP}" == "judilibre" ];then
                 echo "✓   configmap ${APP_GROUP}/${RESOURCENAME}";
         else
                 if [ -f "$STOPWORDS" ]; then
-                        if (${KUBECTL} create configmap --namespace=${KUBE_NAMESPACE} ${RESOURCENAME} --from-file=${STOPWORDS} > ${KUBE_INSTALL_LOG} 2>&1); then
+                        if (${KUBECTL} create configmap --namespace=${KUBE_NAMESPACE} ${RESOURCENAME} --from-file=${STOPWORDS} >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  configmap ${APP_GROUP}/${RESOURCENAME}";
                         else
                                 echo -e "\e[31m❌  configmap ${APP_GROUP}/${RESOURCENAME} !\e[0m" && exit 1;
@@ -277,17 +281,17 @@ for resource in ${KUBE_SERVICES}; do
         fi;
         if [ "${resource}" == "deployment" ]; then
                 # elastic secrets
-                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                 else
                         if [[ "${APP_ID}" == *"admin" ]]; then
-                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200" > ${KUBE_INSTALL_LOG} 2>&1); then
+                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1); then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
                         else
-                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://search:${ELASTIC_SEARCH_PASSWORD}@${APP_GROUP}-es-http:9200" > ${KUBE_INSTALL_LOG} 2>&1);then
+                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://search:${ELASTIC_SEARCH_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1);then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
@@ -299,10 +303,10 @@ for resource in ${KUBE_SERVICES}; do
                         export HTTP_PASSWD=$(openssl rand -hex 32)
                         echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
                 fi
-                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwpasswdord";
                 else
-                        if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" > ${KUBE_INSTALL_LOG} 2>&1); then
+                        if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
                         else
                                 echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
@@ -322,7 +326,10 @@ for resource in ${KUBE_SERVICES}; do
         if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
-                if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - > ${KUBE_INSTALL_LOG} 2>&1); then
+                if [ "${resource}" == "ingress" ]; then
+                        export IP_WHITELIST=$(./scripts/whitelist.sh)
+                fi
+                if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
                 else
                         echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1;
@@ -393,7 +400,7 @@ export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 
 if [ -f "${ELASTIC_TEMPLATE}" -a "${APP_GROUP}" == "judilibre" ];then
         if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_template/t_judilibre" 2>&1 | grep -q ${APP_GROUP}); then
-                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(cat ${ELASTIC_TEMPLATE})" > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_template/t_judilibre" -H 'Content-Type: application/json' -d "$(cat ${ELASTIC_TEMPLATE})" >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  elasticsearch templates";
                 else
                         echo -e "\e[31m❌  elasticsearch templates !\e[0m" && exit 1;
@@ -416,10 +423,10 @@ if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
         export RCLONE_CONFIG_S3_LOCATION_CONSTRAINT=
         export RCLONE_CONFIG_S3_STORAGE_CLASS=
         export RCLONE_CONFIG_S3_ACL=private
-        if (rclone -q ls s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1);then
+        if (rclone -q ls s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} >> ${KUBE_INSTALL_LOG} 2>&1);then
                 echo "✓   elasticsearch s3 backup bucket";
         else
-                if (rclone -q mkdir s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} > ${KUBE_INSTALL_LOG} 2>&1);then
+                if (rclone -q mkdir s3:${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE} >> ${KUBE_INSTALL_LOG} 2>&1);then
                         echo "🚀  elasticsearch s3 backup bucket";
                 else
                         echo -e "\e[31m❌  elasticsearch s3 backup bucket !\e[0m" && exit 1;
@@ -435,12 +442,12 @@ if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
         }"
         ELASTIC_REPOSITORY=$(echo ${ELASTIC_REPOSITORY} | tr "'" '"' | jq -c '.')
 
-        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s --fail -k "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" > ${KUBE_INSTALL_LOG} 2>&1); then
-                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" > ${KUBE_INSTALL_LOG} 2>&1); then
+        if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s --fail -k "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" >> ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  elasticsearch set backup repository";
                         ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}')
                         if [ ! -z "${ELASTIC_SNAPSHOT}" ];then
-                                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPOST "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/${ELASTIC_SNAPSHOT}/_restore" > ${KUBE_INSTALL_LOG} 2>&1);then
+                                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s --fail -k -XPOST "${ELASTIC_NODE}/_snapshot/${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}-${KUBE_NAMESPACE}/${ELASTIC_SNAPSHOT}/_restore" -H 'Content-Type: application/json' -d '{"indices":"'${ELASTIC_INDEX}'"}' >> ${KUBE_INSTALL_LOG} 2>&1);then
                                         echo "🔄  elasticsearch backup ${ELASTIC_SNAPSHOT} restored";
                                 else
                                         echo -e "\e[31m❌  elasticsearch backup ${ELASTIC_SNAPSHOT} not restored !\e[0m" && exit 1;
@@ -455,7 +462,7 @@ if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
 fi;
 if [ "${APP_GROUP}" == "judilibre" ];then
         if ! (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/indices" 2>&1 | grep -q ${ELASTIC_INDEX}); then
-                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/${ELASTIC_INDEX}" > ${KUBE_INSTALL_LOG} 2>&1); then
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/${ELASTIC_INDEX}" >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  elasticsearch default index";
                 else
                         echo -e "\e[31m❌  elasticsearch default index !\e[0m" && exit 1;

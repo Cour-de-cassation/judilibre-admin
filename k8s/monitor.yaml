@@ -65,7 +65,6 @@ data:
         }
         region => "${SCW_REGION}"
         endpoint => "https://s3.${SCW_REGION}.scw.cloud"
-        exclude_pattern => "konnectivity-agent"
         codec => "json_lines"
       }
     }
@@ -73,84 +72,115 @@ data:
       date {
         match => [ "date" , "ISO8601" ]
       }
+      mutate {
+        add_field => {
+          "source" => "%{[@metadata][s3][key]}"
+        }
+      }
       grok {
         match => {
-          "[kubernetes][host]" => "^(?<kubernetes_cluster_name>.*)-default-[^\-]*$"
+          "[source]" => ".*/(?<kubernetes_cluster_name>judilibre-scw-[^\/]*)-(master|dev)/.*$"
         }
         tag_on_failure => [ "kubernetes_cluster_name_error" ]
       }
       mutate {
         rename => {
-          "[kubernetes_cluster_name]" => "[kubernetes][cluster_name]"
-          "[kubernetes][labels][app]" => "[kubernetes][labels][app.kubernetes.io/name]"
+          "[kubernetes_labels][app]" => "[kubernetes_labels][app.kubernetes.io/name]"
         }
       }
-      grok {
-        match => {
-          "log" => "%{TIMESTAMP_ISO8601:container_timestamp} %{WORD:container_output} %{WORD:container_output_mode} %{GREEDYDATA:container_log}"
+      if [cpu_p] or [Mem.total] or [write_size] {
+        mutate {
+          add_field => { "log_type" => "metrics" }
         }
-        tag_on_failure => [ "kubernetes_log_parse_error" ]
-      }
-      if [container_output] {
-          mutate {
-            remove_field => ["log"]
-          }
-        if [container_output] == "stderr" {
-          mutate {
-            add_tag => ["container_error"]
-          }
-        }
-        if [kubernetes][container_name] == "nginx-ingress-controller" {
-          if [container_output] != "stderr" {
-            mutate {
-              add_field => { "log_type" => "web_access" }
+      } else {
+        if [kubernetes_container_name] == "nginx-ingress-controller" or [kubernetes_namespace_name] =~ /^judilibre/ {
+          grok {
+            match => {
+              "log" => "%{TIMESTAMP_ISO8601:container_timestamp} %{WORD:container_output} %{WORD:container_output_mode} %{GREEDYDATA:container_log}"
             }
-            grok {
-              match => { "container_log" => "%{IPORHOST:clientip} (?:-|(%{WORD}.%{WORD})) (-|%{USER:http_user}) \[%{HTTPDATE:timestamp_request}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:status;long} (?:%{NUMBER:body_bytes_sent;long}|-) (?:\"(?:%{URI:http_referrer}|-)\") \"%{DATA:http_user_agent}\" %{NUMBER:request_length;long} %{NUMBER:request_time;double} \[(?:%{DATA:proxy_upstream_name})\] \[(?:%{DATA:proxy_alternative_upstream_name})\] (-|%{NOTSPACE:upstream_addr}) (-|%{NUMBER:upstream_response_length;long}) (-|%{NUMBER:upstream_response_time;double}) (-|%{NUMBER:upstream_status;long}) %{NOTSPACE:request_id}" }
-            }
-            if "_grokparsefailure" in [tags] {
+            tag_on_failure => [ "kubernetes_log_parse_error" ]
+          }
+          if [container_output] {
               mutate {
-                add_tag => [ "nginx_log_parse_error" ]
+                remove_field => ["log"]
+              }
+            if [container_output] == "stderr" {
+              mutate {
+                add_tag => ["container_error"]
+              }
+            }
+            if [kubernetes_container_name] == "nginx-ingress-controller" {
+              if [container_output] != "stderr" {
+                mutate {
+                  add_field => { "log_type" => "web_access" }
+                }
+                grok {
+                  match => { "container_log" => "%{IPORHOST:clientip} (?:-|(%{WORD}.%{WORD})) (-|%{USER:http_user}) \[%{HTTPDATE:timestamp_request}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:status;long} (?:%{NUMBER:body_bytes_sent;long}|-) (?:\"(?:%{URI:http_referrer}|-)\") \"%{DATA:http_user_agent}\" %{NUMBER:request_length;long} %{NUMBER:request_time;double} \[(?:%{DATA:proxy_upstream_name})\] \[(?:%{DATA:proxy_alternative_upstream_name})\] (-|%{NOTSPACE:upstream_addr}) (-|%{NUMBER:upstream_response_length;long}) (-|%{NUMBER:upstream_response_time;double}) (-|%{NUMBER:upstream_status;long}) %{NOTSPACE:request_id}" }
+                }
+                if "_grokparsefailure" in [tags] {
+                  mutate {
+                    add_tag => [ "nginx_log_parse_error" ]
+                  }
+                } else {
+                  mutate {
+                    remove_field => ["container_log"]
+                  }
+                  geoip {
+                    source => "clientip"
+                  }
+                  if [proxy_upstream_name] =~ /search/ {
+                    grok {
+                      match => {
+                        "[request]" => "^/(?<request_api>(decision|search|taxonomy|stats|healthcheck)).*"
+                      }
+                      tag_on_failure => [ "request_invalid" ]
+                    }
+                  } else if [proxy_upstream_name] =~ /admin/ {
+                    grok {
+                      match => {
+                        "[request]" => "^/(?<request_api>(admin|delete|import|index)).*"
+                      }
+                      tag_on_failure => [ "request_invalid" ]
+                    }
+                  }
+                }
+              } else {
+                mutate {
+                  add_field => { "log_type" => "web_error" }
+                }
               }
             } else {
-              mutate {
-                remove_field => ["container_log"]
-              }
-              geoip {
-                source => "clientip"
+              if [kubernetes_container_name] == "nginx-ingress-controller" {
+                mutate {
+                  add_field => { "log_type" => "web_error" }
+                }
+              } else {
+                mutate {
+                  add_field => { "log_type" => "judilibre" }
+                }
               }
             }
           } else {
             mutate {
-              add_field => { "log_type" => "web_error" }
+              add_field => { "log_type" => "judilibre" }
             }
           }
-        } else if [kubernetes][container_name] == "judilibre-search-deployment" {
-          mutate {
-            add_field => { "log_type" => "judilibre-search" }
-          }
-        } else if [kubernetes][container_name] == "judilibre-admin-deployment" {
-          mutate {
-            add_field => { "log_type" => "judilibre-admin" }
-          }
-        } else if [kubernetes][container_name] =~ /^judilibre-es-.*/ {
-          mutate {
-            add_field => { "log_type" => "elasticsearch" }
-          }
         } else {
-          mutate {
-            add_field => { "log_type" => "kubernetes" }
+          if [kubernetes_container_name] {
+            mutate {
+              add_field => { "log_type" => "kubernetes" }
+            }
+          } else {
+            mutate {
+              add_field => { "log_type" => "other" }
+            }
           }
-        }
-      } else {
-        mutate {
-          add_field => { "log_type" => "unparsed" }
         }
       }
     }
     output {
       elasticsearch {
-        index => "logstash-%{[kubernetes][cluster_name]}-%{[log_type]}-%{+YYYY.MM}"
+        index => "logstash-%{[kubernetes_cluster_name]}-%{[log_type]}-%{+YYYY.MM}"
         user => "elastic"
         password => "${ELASTIC_PASSWORD}"
         hosts => ["https://monitor-es-http:9200"]
@@ -177,7 +207,7 @@ spec:
     spec:
       initContainers:
       - name: install-plugins
-        image: docker.elastic.co/logstash/logstash:7.14.0
+        image: docker.elastic.co/logstash/logstash:${ELASTIC_VERSION}
         command:
         - sh
         - -c
@@ -185,7 +215,7 @@ spec:
           bin/logstash-plugin install logstash-codec-json_lines
       containers:
       - name: logstash
-        image: docker.elastic.co/logstash/logstash:7.14.0
+        image: docker.elastic.co/logstash/logstash:${ELASTIC_VERSION}
         ports:
         - containerPort: 5044
         env:
@@ -235,7 +265,7 @@ metadata:
   name: monitor
   namespace: monitor
 spec:
-  version: 7.14.0
+  version: ${ELASTIC_VERSION}
   count: 1
   elasticsearchRef:
     name: monitor

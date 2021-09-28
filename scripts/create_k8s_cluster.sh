@@ -106,9 +106,9 @@ export SCW_KUBE_SECURITYGROUP_ID=$(curl -s "${SCW_SERVER_API}" -H "X-Auth-Token:
 if [ ! -z "${SCW_KUBE_SECURITYGROUP_ID}" ];then
     SCW_RULE_443='{"protocol":"TCP","direction":"inbound","action":"drop","ip_range": "0.0.0.0/0","dest_port_from": 443}'
     SCW_RULE_80='{"protocol":"TCP","direction":"inbound","action":"drop","ip_range": "0.0.0.0/0","dest_port_from": 80}'
-    if (    (curl -s -XPUT "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "{\"stateful\":true}" > ${KUBE_INSTALL_LOG} 2>&1) \
-         && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_443}" > ${KUBE_INSTALL_LOG} 2>&1) \
-         && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_80}"  > ${KUBE_INSTALL_LOG} 2>&1) \
+    if (    (curl -s -XPUT "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "{\"stateful\":true}" >> ${KUBE_INSTALL_LOG} 2>&1) \
+         && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_443}" >> ${KUBE_INSTALL_LOG} 2>&1) \
+         && (curl -s -XPOST "${SCW_SECURITYGROUP_API}/${SCW_KUBE_SECURITYGROUP_ID}/rules" -H "Content-Type: application/json" -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" -d "${SCW_RULE_80}"  >> ${KUBE_INSTALL_LOG} 2>&1) \
     );then
             echo -e "\r\033[2K🚀  k8s security group";
     else
