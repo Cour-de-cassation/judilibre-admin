@@ -62,7 +62,11 @@ for ENV_DST in ${ENV_FILES_DST};do
         ELASTIC_REPOSITORY=$(echo ${ELASTIC_REPOSITORY} | tr "'" '"' | jq -c '.')
         if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${S3_SRC}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" > ${KUBE_INSTALL_LOG} 2>&1); then
             echo "✓   elasticsearch set backup SRC repository as ${S3_SRC}";
-            ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${S3_SRC}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}')
+            ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${S3_SRC}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}');
+            while [ -z ${ELASTIC_SNAPSHOT} ];do
+                sleep 1;
+                ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${S3_SRC}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}');
+            done;
             if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPOST "${ELASTIC_NODE}/_snapshot/${S3_SRC}/${ELASTIC_SNAPSHOT}/_restore" -H 'Content-Type: application/json' -d '{"indices":"'${ELASTIC_INDEX}'"}' > ${KUBE_INSTALL_LOG} 2>&1);then
                     echo "🔄  elasticsearch backup ${ELASTIC_SNAPSHOT} restored from ${S3_SRC} to ${KUBE_NAMESPACE}";
             else
