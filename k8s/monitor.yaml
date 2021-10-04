@@ -55,18 +55,28 @@ data:
     path.config: /usr/share/logstash/pipeline
   logstash.conf: |
     input {
-      s3 {
-        access_key_id => "${AWS_ACCESS_KEY_ID}"
-        secret_access_key => "${AWS_SECRET_ACCESS_KEY}"
-        bucket => "${SCW_LOG_BUCKET}"
-        additional_settings => {
-          force_path_style => true
-          follow_redirects => false
-        }
-        region => "${SCW_REGION}"
-        endpoint => "https://s3.${SCW_REGION}.scw.cloud"
-        codec => "json_lines"
+      file {
+        path => "/var/log/s3/**/*.jsonl"
+        mode => "read"
+        file_completed_action => "log"
+        file_completed_log_path => "/usr/share/logstash/data/plugins/inputs/file/completed.log"
+        discover_interval => 60
+        stat_interval => 1
+        codec => "json"
       }
+      # s3 {
+      #   access_key_id => "${AWS_ACCESS_KEY_ID}"
+      #   secret_access_key => "${AWS_SECRET_ACCESS_KEY}"
+      #   bucket => "${SCW_LOG_BUCKET}"
+      #   region => "${SCW_REGION}"
+      #   endpoint => "https://s3.${SCW_REGION}.scw.cloud"
+      #   codec => "json_lines"
+      #   additional_settings => {
+      #     force_path_style => true
+      #     ssl_verify_peer => false
+      #     http_wire_trace => true
+      #   }
+      # }
     }
     filter {
       date {
@@ -74,7 +84,7 @@ data:
       }
       mutate {
         add_field => {
-          "source" => "%{[@metadata][s3][key]}"
+          "source" => "%{[path]}"
         }
       }
       grok {
@@ -190,6 +200,83 @@ data:
       }
     }
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3-log-mirror
+  namespace: monitor
+  labels:
+    app: logstash
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 75Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: s3-rclone-sync
+  namespace: monitor
+spec:
+  schedule: "* * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          containers:
+          - name: rclone
+            image: rclone/rclone:latest
+            volumeMounts:
+              - name: s3-log-mirror
+                mountPath: /var/log/s3
+            command:
+            - /bin/sh
+            args:
+            - -c
+            - |
+              rclone -v sync s3:${SCW_LOG_BUCKET} /var/log/s3
+            env:
+            - name: RCLONE_CONFIG_S3_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_S3_ENV_AUTH
+              value: "false"
+            - name: RCLONE_CONFIG_S3_ENDPOINT
+              value: s3.${SCW_REGION}.scw.cloud
+            - name: RCLONE_CONFIG_S3_REGION
+              value: ${SCW_REGION}
+            - name: RCLONE_CONFIG_S3_SERVER_SIDE_ENCRYPTION
+              value: ""
+            - name: RCLONE_CONFIG_S3_FORCE_PATH_STYLE
+              value: "false"
+            - name: RCLONE_CONFIG_S3_LOCATION_CONSTRAINT
+              value: ""
+            - name: RCLONE_CONFIG_S3_STORAGE_CLASS
+              value: ""
+            - name: RCLONE_CONFIG_S3_ACL
+              value: private
+            - name: RCLONE_CONFIG_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: s3-log-keys
+                  key: AWS_ACCESS_KEY_ID
+            - name: RCLONE_CONFIG_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: s3-log-keys
+                  key: AWS_SECRET_ACCESS_KEY
+          restartPolicy: Never
+          volumes:
+          - name: s3-log-mirror
+            persistentVolumeClaim:
+              claimName: s3-log-mirror
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -242,6 +329,9 @@ spec:
           - name: cert-ca
             mountPath: /etc/logstash/certificates
             readOnly: true
+          - name: s3-log-mirror
+            readOnly: true
+            mountPath: /var/log/s3/
       volumes:
       - name: config-volume
         configMap:
