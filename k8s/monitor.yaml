@@ -348,6 +348,244 @@ spec:
       - name: cert-ca
         secret:
           secretName: monitor-es-http-certs-public
+      - name: s3-log-mirror
+        persistentVolumeClaim:
+          claimName: s3-log-mirror
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: filebeat-config
+#   namespace: monitor
+#   labels:
+#     app: filebeat
+# data:
+#   filebeat.yml: |-
+#     filebeat.inputs:
+#     - type: aws-s3
+#       bucket_arn: "arn:scw.cloud:s3:fr-par::${SCW_LOG_BUCKET}"
+#       bucket_regional_domain_name: fr-par
+#       endpoint: scw.cloud
+#       number_of_workers: 5
+#       bucket_list_interval: 60s
+#       expand_event_list_from_field: Records
+#       json.keys_under_root: true
+#       include_s3_metadata:
+#         - key
+
+#     output.elasticsearch:
+#       hosts: ['${ELASTICSEARCH_HOST:elasticsearch}:${ELASTICSEARCH_PORT:9200}']
+#       username: ${ELASTICSEARCH_USERNAME}
+#       password: ${ELASTICSEARCH_PASSWORD}
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: filebeat-data
+#   namespace: monitor
+#   labels:
+#     app: filebeat
+# spec:
+#   accessModes:
+#   - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 100Gi
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: filebeat-deployment
+#   namespace: monitor
+#   labels:
+#     app: filebeat
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: filebeat
+#   template:
+#     metadata:
+#       labels:
+#         app: filebeat
+#     spec:
+#       terminationGracePeriodSeconds: 30
+#       initContainers:
+#       # By default k8s mounts the data directory as root, which renders it inaccessible to Elasticsearch.
+#       - name: fix-permissions
+#         image: busybox
+#         command: ["sh", "-c", "chown -R 1000:1000 /usr/share/filebeat/data"]
+#         securityContext:
+#           privileged: true
+#         volumeMounts:
+#         - name: data
+#           mountPath: /usr/share/filebeat/data
+#       containers:
+#       - name: filebeat
+#         image: docker.elastic.co/beats/filebeat:7.15.0
+#         args: [
+#           "-c", "/etc/filebeat.yml",
+#           "-e",
+#         ]
+#         env:
+#         - name: ELASTICSEARCH_HOST
+#           value: monitor-es-http
+#         - name: ELASTICSEARCH_PORT
+#           value: "9200"
+#         - name: ELASTICSEARCH_USERNAME
+#           value: elastic
+#         - name: ELASTICSEARCH_PASSWORD
+#           valueFrom:
+#             secretKeyRef:
+#               name: ${APP_GROUP}-es-elastic-user
+#               key: elastic
+#         - name: AWS_ACCESS_KEY_ID
+#           valueFrom:
+#             secretKeyRef:
+#               name: s3-log-keys
+#               key: AWS_ACCESS_KEY_ID
+#         - name: AWS_SECRET_ACCESS_KEY
+#           valueFrom:
+#             secretKeyRef:
+#               name: s3-log-keys
+#               key: AWS_SECRET_ACCESS_KEY
+#         volumeMounts:
+#         - name: config
+#           mountPath: /etc/filebeat.yml
+#           readOnly: true
+#           subPath: filebeat.yml
+#         - name: data
+#           mountPath: /usr/share/filebeat/data
+#       volumes:
+#       - name: config
+#         configMap:
+#           defaultMode: 0640
+#           name: filebeat-config
+#       # data folder stores a registry of read status for all files, so we don't send everything again on a Filebeat pod restart
+#       - name: data
+#         persistentVolumeClaim:
+#           claimName: filebeat-
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: vector
+#   namespace: monitor
+#   labels:
+#     app: vector
+# data:
+#   # We leave `vector.toml` file name available to let externally managed config
+#   # maps to provide it.
+#   vector.toml: |
+#     # Configuration for vector.
+#     # Docs: https://vector.dev/docs/
+
+#     data_dir = "/vector-data-dir"
+
+#     [api]
+#       enabled = false
+
+#     [log_schema]
+#       host_key = "host"
+#       message_key = "message"
+#       source_type_key = "source_type"
+#       timestamp_key = "timestamp"
+
+#     # Accept logs from Vector agents.
+#     [sources.scw_logs]
+#       type = "aws_s3"
+#       endpoint = "https://s3.fr-par.scw.cloud"
+#       bucket = "${SCW_LOG_BUCKET}"
+
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: vector
+#   namespace: monitor
+#   labels:
+#     app.kubernetes.io/name: vector
+#     app.kubernetes.io/instance: vector
+# automountServiceAccountToken: true
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: vector
+#   namespace: monitor
+#   labels:
+#     app.kubernetes.io/name: vector
+#     app.kubernetes.io/instance: vector
+# spec:
+#   serviceName: vector
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: vector
+#       app.kubernetes.io/instance: vector
+#       app.kubernetes.io/component: aggregator
+#   podManagementPolicy: "Parallel"
+#   replicas: 1
+#   template:
+#     metadata:
+#       labels:
+#         app.kubernetes.io/name: vector
+#         app.kubernetes.io/instance: vector
+#         app.kubernetes.io/component: aggregator
+#         vector.dev/exclude: "true"
+#     spec:
+#       containers:
+#         - name: vector
+#           image: "timberio/vector:latest-debian"
+#           args:
+#             - --config-dir
+#             - /etc/vector/
+#           env:
+#             - name: ELASTIC_PASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: ${APP_GROUP}-es-elastic-user
+#                   key: elastic
+#             - name: AWS_ACCESS_KEY_ID
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: s3-log-keys
+#                   key: AWS_ACCESS_KEY_ID
+#             - name: AWS_SECRET_ACCESS_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: s3-log-keys
+#                   key: AWS_SECRET_ACCESS_KEY
+#             - name: LOG
+#               value: info
+#           volumeMounts:
+#             # Vector data dir mount.
+#             - name: vector-data
+#               mountPath: "/vector-data-dir"
+#             # Vector config dir mount.
+#             - name: config-dir
+#               mountPath: /etc/vector
+#               readOnly: true
+#             # Extra volumes.
+#       terminationGracePeriodSeconds: 60
+#       tolerations:
+#         - effect: NoSchedule
+#           key: node-role.kubernetes.io/master
+#       volumes:
+#         # Vector config dir.
+#         - name: config-dir
+#           projected:
+#             sources:
+#               - configMap:
+#                   name: vector
+#   volumeClaimTemplates:
+#     - metadata:
+#         name: vector-data
+#       spec:
+#         accessModes:
+#         - ReadWriteOnce
+#         resources:
+#           requests:
+#             storage: 1Gi
 ---
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana
