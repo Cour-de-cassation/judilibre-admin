@@ -125,7 +125,7 @@ data:
                   add_field => { "log_type" => "web_access" }
                 }
                 grok {
-                  match => { "container_log" => "%{IPORHOST:clientip} (?:-|(%{WORD}.%{WORD})) (-|%{USER:http_user}) \[%{HTTPDATE:timestamp_request}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:status;long} (?:%{NUMBER:body_bytes_sent;long}|-) (?:\"(?:%{URI:http_referrer}|-)\") \"%{DATA:http_user_agent}\" %{NUMBER:request_length;long} %{NUMBER:request_time;double} \[(?:%{DATA:proxy_upstream_name})\] \[(?:%{DATA:proxy_alternative_upstream_name})\] (-|%{NOTSPACE:upstream_addr}) (-|%{NUMBER:upstream_response_length;long}) (-|%{NUMBER:upstream_response_time;double}) (-|%{NUMBER:upstream_status;long}) %{NOTSPACE:request_id}" }
+                  match => { "container_log" => "%{IPORHOST:clientip} (?:-|(%{WORD}.%{WORD})) (-|%{USER:http_user}) \[%{HTTPDATE:timestamp_request}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" (-|%{NUMBER:status;long}) (-|%{NUMBER:body_bytes_sent;long}) (?:\"(?:%{URI:http_referrer}|-)\") \"%{DATA:http_user_agent}\" (-|%{NUMBER:request_length;long}) (-|%{NUMBER:request_time;double}) \[(?:%{DATA:proxy_upstream_name})\] \[(?:%{DATA:proxy_alternative_upstream_name})\] (-|%{NOTSPACE:upstream_addr}|(?<upstream_addr>(\d+.\d+.\d+.\d+:\d+(, )?|-)+)) (-|%{NUMBER:upstream_response_length;long}|(?<upstream_response_length>(\d+(, )?|-)+)) (-|%{NUMBER:upstream_response_time;double}|(?<upstream_response_time>([0-9\.]+(, )?|-)+)) (-|%{NUMBER:upstream_status;long}|(?<upstream_status>(\d+(, )?|-)+)) %{NOTSPACE:request_id}" }
                 }
                 if "_grokparsefailure" in [tags] {
                   mutate {
@@ -134,6 +134,29 @@ data:
                 } else {
                   mutate {
                     remove_field => ["container_log"]
+                    convert => {
+                      body_bytes_sent => integer
+                      request_length => integer
+                      request_time => float
+                    }
+                  }
+                  grok {
+                    match => [ "request", "%{URIPARAM:request_params}" ]
+                  }
+                  if [request_params] {
+                    mutate {
+                      gsub => [ "request_params", "(\?|\[\]|\/)", "" ]
+                      gsub => [ "request_params", "\+", " " ]
+                      lowercase => [ "request_params" ]
+                    }
+                    urldecode {
+                      field => "request_params"
+                    }
+                    kv {
+                      prefix => "request_params_"
+                      source => "request_params"
+                      field_split => "&"
+                    }
                   }
                   geoip {
                     source => "clientip"
@@ -176,15 +199,16 @@ data:
             }
           }
         } else {
-          if [kubernetes_container_name] {
-            mutate {
-              add_field => { "log_type" => "kubernetes" }
-            }
-          } else {
-            mutate {
-              add_field => { "log_type" => "other" }
-            }
-          }
+          drop {}
+          # if [kubernetes_container_name] {
+          #   mutate {
+          #     add_field => { "log_type" => "kubernetes" }
+          #   }
+          # } else {
+          #   mutate {
+          #     add_field => { "log_type" => "other" }
+          #   }
+          # }
         }
       }
     }
@@ -299,7 +323,7 @@ spec:
         - sh
         - -c
         - |
-          bin/logstash-plugin install logstash-codec-json_lines
+          bin/logstash-plugin install logstash-codec-json_lines logstash-filter-urldecode
       containers:
       - name: logstash
         image: docker.elastic.co/logstash/logstash:${ELASTIC_VERSION}
