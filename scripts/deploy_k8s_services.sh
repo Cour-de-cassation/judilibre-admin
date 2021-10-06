@@ -323,12 +323,13 @@ for resource in ${KUBE_SERVICES}; do
                 done ;
                 echo -en "\r\033[2K";
         fi;
-        if (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
+        if ( ! (echo ${KUBE_SERVICES_FORCE_UPDATE} | tr ' ' '\n' | grep -q ${resource}) ) && (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
                 if [ "${resource}" == "ingress" ]; then
                         export IP_WHITELIST=$(./scripts/whitelist.sh)
                 fi
+                # don't substitute empty vars, allowing them to be receplaced within kube itself
                 if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
                 else
