@@ -1,0 +1,37 @@
+name: Clone data
+
+on:
+  schedule:
+    - cron: "2 * * * *"
+  workflow_dispatch:
+
+jobs:
+  clone-data-to-dev:
+    name: 🔄 Clone data from prod par-2 to dev
+    runs-on: ubuntu-latest
+    env:
+      APP_GROUP: judilibre
+      ELASTIC_INDEX: judilibre_0
+      SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
+      SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
+      KUBE_NAMESPACE: judilibre-scw-dev-par1-dev
+      SCW_KUBE_PROJECT_NAME: judilibre-dev
+      SCW_ZONE: fr-par-1
+    steps:
+      - uses: actions/checkout@v1
+      - name: kube prerequisites
+        run: |
+          mkdir -p ${HOME}/.kube
+          cat k8s/kubeconfig.yaml | envsubst > ~/.kube/config
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER }}
+      - name: 🔄 Clone data ☸️
+        run: |
+          echo SCW_KUBE_PROJECT_NAME=${SCW_KUBE_PROJECT_NAME} SCW_ZONE=${SCW_ZONE} KUBE_NAMESPACE=${KUBE_NAMESPACE} | tr ' ' '\n' > ENV_FILES_DST
+          echo SCW_KUBE_PROJECT_NAME=judilibre-prod SCW_ZONE=fr-par-2 KUBE_NAMESPACE=judilibre-scw-prod-par2-master | tr ' ' '\n' > ENV_FILE_SRC
+          export ENV_FILE_SRC=$(pwd)/ENV_FILE_SRC ENV_FILES_DST=$(pwd)/ENV_FILES_DST
+          ./scripts/clone_data.sh
