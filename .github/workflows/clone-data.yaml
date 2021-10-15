@@ -1,0 +1,66 @@
+name: Clone data
+
+on:
+  schedule:
+    - cron: "2 */2 * * *"
+  workflow_dispatch:
+
+jobs:
+  clone-data-to-dev:
+    name: 🔄 Clone data from prod par-2 to dev
+    runs-on: ubuntu-latest
+    env:
+      APP_GROUP: judilibre
+      ELASTIC_INDEX: judilibre_0
+      SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
+      SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: kube prerequisites
+        run: |
+          mkdir -p ${HOME}/.kube
+          cat k8s/kubeconfig.yaml | envsubst > ~/.kube/config
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER }}
+      - name: Check master availability (dont clone if master is not healthy)
+        run: |
+          curl -s --fail https://search.prod-par2.judilibre.io/healthcheck | grep -q disponible && echo "master is available"
+      - name: 🔄 Clone data ☸️
+        run: |
+          echo SCW_KUBE_PROJECT_NAME=judilibre-dev SCW_ZONE=fr-par-1 KUBE_NAMESPACE=judilibre-scw-dev-par1-dev | tr ' ' '\n' > ENV_FILES_DST
+          echo SCW_KUBE_PROJECT_NAME=judilibre-prod SCW_ZONE=fr-par-2 KUBE_NAMESPACE=judilibre-scw-prod-par2-master | tr ' ' '\n' > ENV_FILE_SRC
+          export ENV_FILE_SRC=$(pwd)/ENV_FILE_SRC ENV_FILES_DST=$(pwd)/ENV_FILES_DST
+          ./scripts/clone_data.sh
+  clone-data-to-slave:
+    name: 🔄 Clone data from prod par-2 to prod par-1
+    runs-on: ubuntu-latest
+    env:
+      APP_GROUP: judilibre
+      ELASTIC_INDEX: judilibre_0
+      SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
+      SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: kube prerequisites
+        run: |
+          mkdir -p ${HOME}/.kube
+          cat k8s/kubeconfig.yaml | envsubst > ~/.kube/config
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA_PROD_PAR1 }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME_PROD_PAR1 }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN_PROD_PAR1 }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR1 }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR1 }}
+      - name: Check master availability (dont clone if master is not healthy)
+        run: |
+          curl -s --fail https://search.prod-par2.judilibre.io/healthcheck | grep -q disponible && echo "master is available"
+      - name: 🔄 Clone data ☸️
+        run: |
+          echo SCW_KUBE_PROJECT_NAME=judilibre-prod SCW_ZONE=fr-par-1 KUBE_NAMESPACE=judilibre-scw-prod-par1-master | tr ' ' '\n' > ENV_FILES_DST
+          echo SCW_KUBE_PROJECT_NAME=judilibre-prod SCW_ZONE=fr-par-2 KUBE_NAMESPACE=judilibre-scw-prod-par2-master | tr ' ' '\n' > ENV_FILE_SRC
+          export ENV_FILE_SRC=$(pwd)/ENV_FILE_SRC ENV_FILES_DST=$(pwd)/ENV_FILES_DST
+          ./scripts/clone_data.sh
