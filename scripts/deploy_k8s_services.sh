@@ -99,81 +99,82 @@ CERT_ALTER_SPEC
 );
 fi
 
-if [ -z ${KUBE_SERVICES} ];then
+if [ -z "${KUBE_SERVICES}" ];then
         export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
-        if [ "${KUBE_ZONE}" == "local" ]; then
-                #register host if not already done
-                if ! (grep -q ${APP_HOST} /etc/hosts); then
-                        (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
+fi
+if [ "${KUBE_ZONE}" == "local" ]; then
+        #register host if not already done
+        if ! (grep -q ${APP_HOST} /etc/hosts); then
+                (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
+        fi;
+        #assume local kube conf (minikube or k3s)
+        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+        if ! (${KUBECTL} version 2>&1 | grep -q Server); then
+                if [ -z "${KUBE_TYPE}" ]; then
+                        # prefer k3s for velocity of install and startup in CI
+                        export K8S=k3s;
                 fi;
-                #assume local kube conf (minikube or k3s)
-                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
-                if ! (${KUBECTL} version 2>&1 | grep -q Server); then
-                        if [ -z "${KUBE_TYPE}" ]; then
-                                # prefer k3s for velocity of install and startup in CI
-                                export K8S=k3s;
+                if [ "${KUBE_TYPE}" == "k3s" ]; then
+                        if ! (which k3s > /dev/null 2>&1); then
+                                (curl -sfL https://get.k3s.io | sh - 2>&1 |\
+                                        awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️   Installed k3s";
                         fi;
-                        if [ "${KUBE_TYPE}" == "k3s" ]; then
-                                if ! (which k3s > /dev/null 2>&1); then
-                                        (curl -sfL https://get.k3s.io | sh - 2>&1 |\
-                                                awk 'BEGIN{s=0}{printf "\r☸️  Installing k3s (" s++ "/16)"}') && echo -e "\r\033[2K☸️   Installed k3s";
-                                fi;
-                                mkdir -p ~/.kube;
-                                export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
-                                sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
-                                sudo chown ${USER} ${KUBECONFIG};
-                                if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                        ./scripts/docker-build.sh;
-                                        docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
-                                        (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
-                                        echo -e "⤵️   Docker image imported to k3s";
-                                        rm /tmp/img.tar;
-                                fi;
-                        fi;
-                        if [ "${K8S}" = "minikube" ]; then
-                                minikube start;
-                                if ! (minikube image list | grep -q ${DOCKER_IMAGE}); then
-                                        ./scripts/docker-build.sh;
-                                        (minikube image load ${DOCKER_IMAGE} >> ${KUBE_INSTALL_LOG} 2>&1);
-                                        echo -e "⤵️   Docker image imported to minikube";
-                                fi;
+                        mkdir -p ~/.kube;
+                        export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
+                        sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
+                        sudo chown ${USER} ${KUBECONFIG};
+                        if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
+                                ./scripts/docker-build.sh;
+                                docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
+                                (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
+                                echo -e "⤵️   Docker image imported to k3s";
+                                rm /tmp/img.tar;
                         fi;
                 fi;
-        else
-                if [[ "${KUBE_ZONE}" == "scw"* ]]; then
-                        if [ -z "${KUBE_INGRESS}" ]; then
-                                export KUBE_INGRESS=nginx
+                if [ "${K8S}" = "minikube" ]; then
+                        minikube start;
+                        if ! (minikube image list | grep -q ${DOCKER_IMAGE}); then
+                                ./scripts/docker-build.sh;
+                                (minikube image load ${DOCKER_IMAGE} >> ${KUBE_INSTALL_LOG} 2>&1);
+                                echo -e "⤵️   Docker image imported to minikube";
                         fi;
-                        if [ "${KUBE_INGRESS}" == "nginx" ]; then
-                                export KUBE_SOLVER=nginx;
-                                export KUBE_CONF_ROUTE=ingress;
-                                export KUBE_CONF_LB=loadbalancer;
-                        else
-                                export KUBE_INGRESS=traefik;
-                                export KUBE_SOLVER=traefik-cert-manager;
-                                export KUBE_CONF_ROUTE=ingressroute;
-                                export KUBE_CONF_LB=loadbalancer-traefik;
-                        fi;
-                        export KUBE_SERVICES="logging ${KUBE_CONF_LB} ${KUBE_SERVICES} snapshots issuer certificate ${KUBE_CONF_ROUTE}";
-                        if [ -z "${ACME}" ]; then
-                                #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
-                                export ACME=acme;
-                        fi;
-                        if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
-                                echo "✓   cert-manager";
-                        else
-                                if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
-                                        echo "🚀  cert-manager";
-                                else
-                                        echo -e "\e[31m❌  cert-manager";
-                                fi;
-                        fi;
-                fi;
-                if [ "${KUBE_TYPE}" == "openshift" ]; then
-                        export KUBE_SERVICES="${KUBE_SERVICES} ingressroute";
                 fi;
         fi;
+else
+        if [[ "${KUBE_ZONE}" == "scw"* ]]; then
+                if [ -z "${KUBE_INGRESS}" ]; then
+                        export KUBE_INGRESS=nginx
+                fi;
+                if [ "${KUBE_INGRESS}" == "nginx" ]; then
+                        export KUBE_SOLVER=nginx;
+                        export KUBE_CONF_ROUTE=ingress;
+                        export KUBE_CONF_LB=loadbalancer;
+                else
+                        export KUBE_INGRESS=traefik;
+                        export KUBE_SOLVER=traefik-cert-manager;
+                        export KUBE_CONF_ROUTE=ingressroute;
+                        export KUBE_CONF_LB=loadbalancer-traefik;
+                fi;
+                export KUBE_SERVICES="logging ${KUBE_CONF_LB} ${KUBE_SERVICES} snapshots issuer certificate ${KUBE_CONF_ROUTE}";
+                if [ -z "${ACME}" ]; then
+                        #define acme-staging for test purpose like dev env (weaker certificates, larger rate limits)
+                        export ACME=acme;
+                fi;
+                if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
+                        echo "✓   cert-manager";
+                else
+                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                echo "🚀  cert-manager";
+                        else
+                                echo -e "\e[31m❌  cert-manager";
+                        fi;
+                fi;
+        fi;
+        if [ "${KUBE_TYPE}" == "openshift" ]; then
+                export KUBE_SERVICES="${KUBE_SERVICES} ingressroute";
+        fi;
 fi;
+
 
 #get current branch
 if [ -z "${GIT_BRANCH}" ];then
