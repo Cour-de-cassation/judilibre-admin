@@ -31,7 +31,7 @@ spec:
               secretKeyRef:
                 name: ${APP_ID}-http-passwd
                 key: http-passwd
-          ${KUBE_APP_ENV}
+          ${APP_ENV_SPEC}
         livenessProbe:
               exec:
                 command:
