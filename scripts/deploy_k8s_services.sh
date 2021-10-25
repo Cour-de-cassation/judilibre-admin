@@ -29,6 +29,10 @@ if [ -z "${IP_WHITELIST}" ];then
         export IP_WHITELIST="0.0.0.0/0"
 fi
 
+if [ -z "${APP_ENV_SPEC}" ];then
+        export APP_ENV_SPEC=" "
+fi;
+
 if [ -z "${KUBECTL}" ]; then
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 if (which oc > /dev/null); then
@@ -265,6 +269,34 @@ else
         export SCW_DATA_SECRET_KEY_B64=Y2hhbmdlbWU=;
 fi;
 
+#encode PISTE API Keys
+if [ ! -z "${PISTE_JUDILIBRE_KEY}" ]; then
+        export PISTE_JUDILIBRE_KEY_B64=$(echo -n ${PISTE_JUDILIBRE_KEY} | openssl base64);
+        export PISTE_JUDILIBRE_KEY_PROD_B64=$(echo -n ${PISTE_JUDILIBRE_KEY_PROD} | openssl base64);
+        export PISTE_METRICS_KEY_B64=$(echo -n ${PISTE_METRICS_KEY} | openssl base64);
+        export PISTE_METRICS_SECRET_B64=$(echo -n ${PISTE_METRICS_SECRET} | openssl base64);
+        export PISTE_METRICS_KEY_PROD_B64=$(echo -n ${PISTE_METRICS_KEY_PROD} | openssl base64);
+        export PISTE_METRICS_SECRET_PROD_B64=$(echo -n ${PISTE_METRICS_SECRET_PROD} | openssl base64);
+else
+        export PISTE_JUDILIBRE_KEY_B64=Y2hhbmdlbWU=;
+        export PISTE_JUDILIBRE_KEY_PROD_B64=Y2hhbmdlbWU=;
+        export PISTE_METRICS_KEY_64=Y2hhbmdlbWU=;
+        export PISTE_METRICS_SECRET_B64=Y2hhbmdlbWU=;
+        export PISTE_METRICS_KEY_PROD_B64=Y2hhbmdlbWU=;
+        export PISTE_METRICS_SECRET_PROD_B64=Y2hhbmdlbWU=;
+fi;
+
+if [ "${APP_GROUP}" == "monitor" ];then
+        export APP_ENV_SPEC=$(cat <<-APP_ENV_SPEC
+- { name: PISTE_JUDILIBRE_KEY, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_JUDILIBRE_KEY } } }
+          - { name: PISTE_JUDILIBRE_KEY_PROD, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_JUDILIBRE_KEY_PROD } } }
+          - { name: PISTE_METRICS_KEY, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_METRICS_KEY } } }
+          - { name: PISTE_METRICS_SECRET, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_METRICS_SECRET } } }
+          - { name: PISTE_METRICS_KEY_PROD, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_METRICS_KEY_PROD } } }
+          - { name: PISTE_METRICS_SECRET_PROD, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_METRICS_SECRET_PROD } } }
+APP_ENV_SPEC
+);
+
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
         if [ -f k8s/${resource}-${KUBE_TYPE}.yaml ]; then
@@ -334,6 +366,8 @@ for resource in ${KUBE_SERVICES}; do
                 if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
                 else
+                        echo "${ressource} ${NAMESPACE}/${RESOURCENAME} conf attemp was:" >> ${KUBE_INSTALL_LOG} 2>&1
+                        (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE}) >> ${KUBE_INSTALL_LOG} 2>&1
                         echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1;
                 fi;
         fi;
