@@ -334,6 +334,8 @@ for resource in ${KUBE_SERVICES}; do
                 if (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE} | ${KUBECTL} apply -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "🚀  ${resource} ${NAMESPACE}/${RESOURCENAME}";
                 else
+                        echo "${ressource} ${NAMESPACE}/${RESOURCENAME} conf attemp was:" >> ${KUBE_INSTALL_LOG} 2>&1
+                        (envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" < ${RESOURCEFILE}) >> ${KUBE_INSTALL_LOG} 2>&1
                         echo -e "\e[31m❌  ${resource} ${NAMESPACE}/${RESOURCENAME} !\e[0m" && exit 1;
                 fi;
         fi;
