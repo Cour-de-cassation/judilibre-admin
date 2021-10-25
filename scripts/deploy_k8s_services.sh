@@ -280,7 +280,7 @@ if [ ! -z "${PISTE_JUDILIBRE_KEY}" ]; then
 else
         export PISTE_JUDILIBRE_KEY_B64=Y2hhbmdlbWU=;
         export PISTE_JUDILIBRE_KEY_PROD_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_KEY_64=Y2hhbmdlbWU=;
+        export PISTE_METRICS_KEY_B64=Y2hhbmdlbWU=;
         export PISTE_METRICS_SECRET_B64=Y2hhbmdlbWU=;
         export PISTE_METRICS_KEY_PROD_B64=Y2hhbmdlbWU=;
         export PISTE_METRICS_SECRET_PROD_B64=Y2hhbmdlbWU=;
@@ -296,6 +296,7 @@ if [ "${APP_GROUP}" == "monitor" ];then
           - { name: PISTE_METRICS_SECRET_PROD, valueFrom: { secretKeyRef: { name: piste-api-keys, key: PISTE_METRICS_SECRET_PROD } } }
 APP_ENV_SPEC
 );
+fi
 
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
