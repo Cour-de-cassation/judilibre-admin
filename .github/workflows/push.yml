@@ -1,6 +1,8 @@
-name: Publish Docker image
+name: Publish Docker image & deploy
 
-on: [push]
+on:
+  push:
+    branches: [dev, master]
 
 jobs:
   build:
@@ -33,7 +35,7 @@ jobs:
         id: extract_version
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: 🐋 Build the master docker image
         run: ./scripts/docker-build.sh
@@ -105,7 +107,7 @@ jobs:
         id: extract_version
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: kube prerequisites
         run: |
@@ -175,7 +177,7 @@ jobs:
         id: extract_version
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: kube prerequisites
         run: |
@@ -245,7 +247,7 @@ jobs:
         id: extract_version
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | tr '/' '-')"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: kube prerequisites
         run: |
