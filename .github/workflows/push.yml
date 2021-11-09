@@ -1,6 +1,8 @@
-name: Publish Docker image
+name: Publish Docker image & deploy
 
-on: [push]
+on:
+  push:
+    branches: [dev, master]
 
 jobs:
   build:
