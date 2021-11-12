@@ -5,6 +5,8 @@
 
 ./scripts/check_install.sh
 
+export NPM_LATEST = true
+
 if [ -z "${VERSION}" ];then\
         export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
 fi
@@ -22,7 +24,7 @@ if ! (docker image inspect ${DOCKER_IMAGE}> /dev/null 2>&1); then
         if (docker pull ${DOCKER_IMAGE} 2> /dev/null); then
                 echo "🐋  Docker image pulled";
         else
-                (docker build --no-cache --build-arg API_PORT=${API_PORT} --target production -t ${DOCKER_IMAGE} . \
+                (docker build --no-cache --build-arg API_PORT=${API_PORT} --build-arg NPM_LATEST=${NPM_LATEST} --target production -t ${DOCKER_IMAGE} . \
                         | stdbuf -o0 grep Step | stdbuf -o0 sed 's/ :.*//' | awk  '{printf "\033[2K\r🐋  Docker build " $0}' && \
                 echo -e "\033[2K\r🐋  Docker successfully built");
         fi;
