@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo echo -n
+
 ./scripts/check_install.sh
 
 if [ -z "${KUBE_INSTALL_LOG}" ];then
@@ -82,11 +84,20 @@ else
         (echo -e "\r\033[2K\e[33m⚠️   delete ${APP_ID} deployment\e[0m");
 fi;
 
-if (cat k8s/elasticsearch.yaml | envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" | ${KUBECTL} delete -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
-        echo "🧹  delete elasticsearch cluster"
+if [ "${APP_GROUP}" == "monitor" ];then
+        export KUBE_SERVICES_FORCE_UPDATE="elasticsearch-users monitor service deployment"
+        if (${KUBECTL} delete -n ${KUBE_NAMESPACE} elasticsearch ${APP_GROUP} >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "🧹  delete elasticsearch cluster"
+        else
+                echo -e "\e[33m⚠️   delete elasticsearch cluster\e[0m";
+        fi;
 else
-        cat k8s/elasticsearch.yaml | envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" >> ${KUBE_INSTALL_LOG};
-        echo -e "\e[33m⚠️   delete elasticsearch cluster\e[0m";
+        if (cat k8s/elasticsearch.yaml | envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" | ${KUBECTL} delete -f - >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "🧹  delete elasticsearch cluster"
+        else
+                cat k8s/elasticsearch.yaml | envsubst "$(perl -e 'print "\$$_" for grep /^[_a-zA-Z]\w*$/, keys %ENV')" >> ${KUBE_INSTALL_LOG};
+                echo -e "\e[33m⚠️   delete elasticsearch cluster\e[0m";
+        fi;
 fi;
 
 unset ELASTIC_ADMIN_PASSWORD
