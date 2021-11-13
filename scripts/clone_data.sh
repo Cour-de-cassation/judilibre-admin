@@ -63,17 +63,23 @@ for ENV_DST in ${ENV_FILES_DST};do
         if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${S3_SRC}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" > ${KUBE_INSTALL_LOG} 2>&1); then
             echo "✓   elasticsearch set backup SRC repository as ${S3_SRC}";
             ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${S3_SRC}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}');
-            while [ -z ${ELASTIC_SNAPSHOT} ];do
+            retries=15;
+            while [ -z "${ELASTIC_SNAPSHOT}" -a "$retries" -gt 0 ];do
+                ((retries--));
                 sleep 1;
                 ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XDELETE "${ELASTIC_NODE}/_snapshot/${S3_SRC}" > ${KUBE_INSTALL_LOG} 2>&1;
                 ${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPUT "${ELASTIC_NODE}/_snapshot/${S3_SRC}" -H 'Content-Type: application/json' -d "${ELASTIC_REPOSITORY}" > ${KUBE_INSTALL_LOG} 2>&1;
                 ELASTIC_SNAPSHOT=$(${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k "${ELASTIC_NODE}/_cat/snapshots/${S3_SRC}" 2>&1 | grep SUCCESS | tail -1 | awk '{print $1}');
             done;
-            if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPOST "${ELASTIC_NODE}/_snapshot/${S3_SRC}/${ELASTIC_SNAPSHOT}/_restore" -H 'Content-Type: application/json' -d '{"indices":"'${ELASTIC_INDEX}'"}' > ${KUBE_INSTALL_LOG} 2>&1);then
-                    echo "🔄  elasticsearch backup ${ELASTIC_SNAPSHOT} restored from ${S3_SRC} to ${KUBE_NAMESPACE}";
+            if [ -z "${ELASTIC_SNAPSHOT}" ]; then
+                    echo -e "\e[31m❌  elasticsearch could retrive backup from ${S3_SRC} !\e[0m";
             else
-                    echo -e "\e[31m❌  elasticsearch backup ${ELASTIC_SNAPSHOT} not restored from ${S3_SRC} to ${KUBE_NAMESPACE} !\e[0m" && exit 1;
-            fi;
+                if (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XPOST "${ELASTIC_NODE}/_snapshot/${S3_SRC}/${ELASTIC_SNAPSHOT}/_restore" -H 'Content-Type: application/json' -d '{"indices":"'${ELASTIC_INDEX}'"}' > ${KUBE_INSTALL_LOG} 2>&1);then
+                        echo "🔄  elasticsearch backup ${ELASTIC_SNAPSHOT} restored from ${S3_SRC} to ${KUBE_NAMESPACE}";
+                else
+                        echo -e "\e[31m❌  elasticsearch backup ${ELASTIC_SNAPSHOT} not restored from ${S3_SRC} to ${KUBE_NAMESPACE} !\e[0m";
+                fi;
+            fi
             (${KUBECTL} exec --namespace=${KUBE_NAMESPACE} ${APP_GROUP}-es-default-0 -- curl -s -k -XDELETE "${ELASTIC_NODE}/_snapshot/${S3_SRC}" > ${KUBE_INSTALL_LOG} 2>&1) && echo "✓   elasticsearch remove backup SRC repository";
             (cat k8s/snapshots.yaml | envsubst | ${KUBECTL} apply -f - > ${KUBE_INSTALL_LOG} 2>&1) && echo "✓   re-enable cronjob for snapshots ${KUBE_NAMESPACE}"
         fi;
