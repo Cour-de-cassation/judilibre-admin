@@ -5,7 +5,7 @@
 
 ./scripts/check_install.sh
 
-export NPM_LATEST = true
+export NPM_LATEST=true
 
 if [ -z "${VERSION}" ];then\
         export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
