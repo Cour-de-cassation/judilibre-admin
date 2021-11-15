@@ -13,6 +13,8 @@ spec:
       labels:
         app: ${APP_ID}
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
       - name: ${APP_ID}
         image: ${DOCKER_USERNAME}/${APP_ID}:${VERSION}
