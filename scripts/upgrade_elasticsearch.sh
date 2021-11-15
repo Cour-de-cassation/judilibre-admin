@@ -86,6 +86,11 @@ fi;
 
 if [ "${APP_GROUP}" == "monitor" ];then
         export KUBE_SERVICES_FORCE_UPDATE="elasticsearch-users monitor service deployment"
+        if (${KUBECTL} delete -n ${KUBE_NAMESPACE} deployment.apps/logstash-deployment >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "🧹  delete logstash cluster"
+        else
+                echo -e "\e[33m⚠️   delete logstash\e[0m";
+        fi;
         if (${KUBECTL} delete -n ${KUBE_NAMESPACE} elasticsearch ${APP_GROUP} >> ${KUBE_INSTALL_LOG} 2>&1); then
                 echo "🧹  delete elasticsearch cluster"
         else

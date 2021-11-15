@@ -33,12 +33,19 @@ spec:
                 key: http-passwd
           ${APP_ENV_SPEC}
         livenessProbe:
-              exec:
-                command:
-                - /bin/sh
-                - -c
-                - curl -s --fail --max-time 2 "http://admin:$(env | grep HTTP_PASSWD= | sed 's/HTTP_PASSWD=//')@localhost:${API_PORT}/healthcheck" | grep -q disponible
-              initialDelaySeconds: 10
-              periodSeconds: 5
-              failureThreshold: 2
-              timeoutSeconds: 2
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - curl -s --fail --max-time 2 "http://admin:$(env | grep HTTP_PASSWD= | sed 's/HTTP_PASSWD=//')@localhost:${API_PORT}/healthcheck" | grep -q disponible
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 2
+          timeoutSeconds: 2
+        securityContext:
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - all
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
