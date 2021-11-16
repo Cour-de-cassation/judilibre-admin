@@ -37,6 +37,6 @@ jobs:
       - name: 🧹 Clean
         if: always()
         run: |
-          curl -s -XDELETE https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
-          curl -s -XDELETE https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
+          curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par1 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
+          curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par2 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
           rm -f ${ENV_FILES}
