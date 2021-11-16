@@ -1,0 +1,42 @@
+name: Create whole sandbox environment (PRA test)
+
+on:
+  schedule:
+    - cron: "0 7 * * 6"
+  workflow_dispatch:
+
+jobs:
+  create-sbx-infra:
+    name: ☸️ Create dual site infrastructure (sandbox) ☸️
+    runs-on: ubuntu-latest
+    env:
+      ENV_SCW_SBX_PAR1: ${{ secrets.ENV_SCW_SBX_PAR1 }}
+      ENV_SCW_SBX_PAR2: ${{ secrets.ENV_SCW_SBX_PAR2 }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: set random DNS
+        run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
+        id: extract_dns
+      - name: get version
+        run: echo "##[set-output name=version;]$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
+        id: extract_version
+      - name: extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
+        id: extract_branch
+      - name: ☸️ create_environment
+        run: |
+          mkdir -p ${HOME}/.kube
+          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
+          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
+          export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
+          (./scripts/create_environment.sh | stdbuf -o0 egrep -vi  'wait' | stdbuf -o0 awk '(NF)') || (echo "Failure logs:" && cat k8s*log && exit 1)
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          DNS_RAND: ${{ steps.extract_dns.outputs.dns }}
+      - name: 🧹 Clean
+        if: always()
+        run: |
+          curl -s -XDELETE https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
+          curl -s -XDELETE https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//') || echo
+          rm -f ${ENV_FILES}
