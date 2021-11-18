@@ -10,10 +10,16 @@ jobs:
     name: ☸️ Create dual site infrastructure (sandbox) ☸️
     runs-on: ubuntu-latest
     env:
+      APP_GROUP: judilibre
+      ELASTIC_INDEX: judilibre_0
+      SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
+      SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
       ENV_SCW_SBX_PAR1: ${{ secrets.ENV_SCW_SBX_PAR1 }}
       ENV_SCW_SBX_PAR2: ${{ secrets.ENV_SCW_SBX_PAR2 }}
     steps:
       - uses: actions/checkout@v1
+        with:
+          ref: dev
       - name: set random DNS
         run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
         id: extract_dns
@@ -34,9 +40,41 @@ jobs:
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           DNS_RAND: ${{ steps.extract_dns.outputs.dns }}
-      - name: 🧹 Clean
+      - name: 🔄 Clone data to sbx fr-par-2
+        run: |
+          echo SCW_KUBE_PROJECT_NAME=judilibre-sbx SCW_ZONE=fr-par-2 KUBE_NAMESPACE=judilibre-scw-sbx-par2-dev | tr ' ' '\n' > ENV_FILES_DST
+          echo SCW_KUBE_PROJECT_NAME=judilibre-prod SCW_ZONE=fr-par-2 KUBE_NAMESPACE=judilibre-scw-prod-par2-master | tr ' ' '\n' > ENV_FILE_SRC
+          export ENV_FILE_SRC=$(pwd)/ENV_FILE_SRC ENV_FILES_DST=$(pwd)/ENV_FILES_DST
+          ./scripts/clone_data.sh
+      - name: 🧹 Clean fr-par-1
         if: always()
         run: |
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par1 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
+          rm -f .env-scw-sbx-par1
+      - name: 📈 Performance test on fr-par-2
+        run: |
+          sudo apt-get install jq
+          ln -s judilibre-search/scripts/test_perf.sh scripts/.
+          ln -s judilibre-search/scripts/perf scripts/.
+          curl "https://monitor.judilibre.io/stats?query=top_words&date_start=now-30d&date_end=now&env=production&size=50000" | jq -r '.top_words.data | keys[]' | sed 's/[^a-zA-Z0-9àéôùî°]/ /g;s/\s\s*/ /g;s/^ //g' | awk '(NF)' | sort > scripts/perf/query_vocab_gen.txt
+          cp scripts/perf/query_vocab_gen.txt scripts/perf/query_vocab.txt
+          rm -f ./scripts/perf/reports/*
+          ./scripts/test_perf.sh
+          cp /scripts/perf/reports/*
+          git checkout performance
+          cp ./scripts/perf/reports/* reports/
+          cat reports/*
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7
+        with:
+          add: reports/*
+          branch: performance
+          commiter_name: Perf runner
+          committer_email: fabien.antoine@m4x.org
+          default_author: github_actor
+          message: 'Update performance tests'
+      - name: 🧹 Clean fr-par-2
+        if: always()
+        run: |
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par2 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
           rm -f ${ENV_FILES}
