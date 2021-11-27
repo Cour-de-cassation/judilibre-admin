@@ -8,7 +8,7 @@
 export NPM_LATEST=true
 
 if [ -z "${VERSION}" ];then\
-        export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
+        export VERSION=$(./scripts/version.sh)
 fi
 
 if [ -z "${APP_ID}" -o -z "${DOCKER_USERNAME}" ]; then
@@ -20,7 +20,7 @@ fi;
 
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
-if ! (docker image inspect ${DOCKER_IMAGE}> /dev/null 2>&1); then
+if ! (./scripts/docker-check.sh); then
         if (docker pull ${DOCKER_IMAGE} 2> /dev/null); then
                 echo "🐋  Docker image pulled";
         else

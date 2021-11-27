@@ -20,7 +20,7 @@ fi
 
 #set version from package & git / could be git tag instead
 if [ -z "${VERSION}" ];then\
-        export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
+        export VERSION=$(./scripts/version.sh)
 fi
 
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
