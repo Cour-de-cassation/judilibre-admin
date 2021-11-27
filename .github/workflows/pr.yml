@@ -31,23 +31,32 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: get version
-        run: echo "##[set-output name=version;]$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
+        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
         id: extract_version
       - name: extract branch name
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
+      - name: 🐋 Check if build is needed
+        id: docker-check
+        run: ./scripts/docker-check.sh
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          VERSION: ${{ steps.extract_version.outputs.version }}
       - name: 🐋 Build the master docker image
+        if: steps.docker-check.conclusion == 'failure'
         run: ./scripts/docker-build.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: ☸️  Deploy local k8s services
+        if: steps.docker-check.conclusion == 'failure'
         run: ./scripts/deploy_k8s_services.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: ✅ Execute minimal tests
+        if: steps.docker-check.conclusion == 'failure'
         run: |
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
           kubectl get pods --namespace=${KUBE_NAMESPACE}
