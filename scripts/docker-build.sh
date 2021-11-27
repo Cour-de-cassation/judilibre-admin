@@ -21,11 +21,7 @@ fi;
 export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 
 if ! (./scripts/docker-check.sh); then
-        if (docker pull ${DOCKER_IMAGE} 2> /dev/null); then
-                echo "🐋  Docker image pulled";
-        else
-                (docker build --no-cache --build-arg API_PORT=${API_PORT} --build-arg NPM_LATEST=${NPM_LATEST} --target production -t ${DOCKER_IMAGE} . \
-                        | stdbuf -o0 grep Step | stdbuf -o0 sed 's/ :.*//' | awk  '{printf "\033[2K\r🐋  Docker build " $0}' && \
-                echo -e "\033[2K\r🐋  Docker successfully built");
-        fi;
+        (docker build --no-cache --build-arg API_PORT=${API_PORT} --build-arg NPM_LATEST=${NPM_LATEST} --target production -t ${DOCKER_IMAGE} . \
+                | stdbuf -o0 grep Step | stdbuf -o0 sed 's/ :.*//' | awk  '{printf "\033[2K\r🐋  Docker build " $0}' && \
+        echo -e "\033[2K\r🐋  Docker successfully built");
 fi;

@@ -20,4 +20,4 @@ if [ -z "${DOCKER_IMAGE}" ]; then
     export DOCKER_IMAGE=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
 fi;
 
-(docker image inspect ${DOCKER_IMAGE}> /dev/null 2>&1)
+(docker image inspect ${DOCKER_IMAGE}> /dev/null 2>&1) || (docker pull ${DOCKER_IMAGE} > /dev/null 2>&1)
