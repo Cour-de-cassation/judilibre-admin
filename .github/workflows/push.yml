@@ -38,25 +38,27 @@ jobs:
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: 🐋 Check if build is needed
-        id: docker-check
-        run: ./scripts/docker-check.sh
+        run: |
+          ./scripts/check_install.sh
+          echo "##[set-output name=status;]$(./scripts/docker-check.sh || echo build_needed)"
+        id: docker_check
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: 🐋 Build the master docker image
-        if: steps.docker-check.conclusion == 'failure'
+        if: steps.docker_check.outputs.status == 'build_needed'
         run: ./scripts/docker-build.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: ☸️  Deploy local k8s services
-        if: steps.docker-check.conclusion == 'failure'
+        if: steps.docker_check.outputs.status == 'build_needed'
         run: ./scripts/deploy_k8s_services.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
       - name: ✅ Execute minimal tests
-        if: steps.docker-check.conclusion == 'failure'
+        if: steps.docker_check.outputs.status == 'build_needed'
         run: |
           export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
           kubectl get pods --namespace=${KUBE_NAMESPACE}
@@ -67,7 +69,7 @@ jobs:
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
           KUBECONFIG: /home/runner/.kube/config-local-k3s.yaml
       - name: 🚀 Push docker image
-        if: (steps.docker-check.conclusion == 'failure') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master')
+        if: (steps.docker_check.outputs.status == 'build_needed') && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master')
         run: |
           echo "${DOCKER_TOKEN}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
           docker push ${DOCKER_USERNAME}/${APP_ID}:${VERSION};
