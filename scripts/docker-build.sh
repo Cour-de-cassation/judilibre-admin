@@ -8,7 +8,7 @@
 export NPM_LATEST=true
 
 if [ -z "${VERSION}" ];then\
-        export VERSION="$(cat package.json | jq -r '.version')-$(git rev-parse --short HEAD)"
+        export VERSION=$(./scripts/version.sh)
 fi
 
 if [ -z "${APP_ID}" -o -z "${DOCKER_USERNAME}" ]; then
