@@ -225,14 +225,16 @@ else
         fi;
 fi;
 
-#install elasticsearch kube cluster controller
-if (${KUBECTL} get elasticsearch >> ${KUBE_INSTALL_LOG} 2>&1); then
-        echo "✓   elasticsearch k8s controller";
-else
-        if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.8.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.8.0/operator.yaml) >> ${KUBE_INSTALL_LOG} 2>&1); then
-                echo "🚀  elasticsearch k8s controller";
+#install elasticsearch kube cluster controller (in supervision and judilibre public envs)
+if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
+        if (${KUBECTL} get elasticsearch >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "✓   elasticsearch k8s controller";
         else
-                echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
+                if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.8.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.8.0/operator.yaml) >> ${KUBE_INSTALL_LOG} 2>&1); then
+                        echo "🚀  elasticsearch k8s controller";
+                else
+                        echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
+                fi;
         fi;
 fi;
 
