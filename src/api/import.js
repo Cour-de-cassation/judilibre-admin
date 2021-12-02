@@ -102,6 +102,12 @@ api.post(
       errorMessage: `Decision has no text.`,
       optional: false,
     },
+    'decisions.*.displayText': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no display text.`,
+      optional: false,
+    },
     'decisions.*.ecli': {
       in: 'body',
       isString: true,
@@ -252,6 +258,7 @@ async function indexDecision(decision) {
   document.version = decision.version;
   document.source = decision.source;
   document.text = decision.text;
+  document.displayText = decision.displayText;
   document.chamber = decision.chamber;
   document.decision_date = decision.decision_date;
   document.jurisdiction = decision.jurisdiction;
