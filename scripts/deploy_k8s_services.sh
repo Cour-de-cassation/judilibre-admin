@@ -128,7 +128,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
                         if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                ./scripts/docker-build.sh;
+                                ./scripts/docker-build.sh || exit 1;
                                 docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
                                 (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
                                 echo -e "⤵️   Docker image imported to k3s";
