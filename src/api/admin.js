@@ -96,20 +96,20 @@ async function getAdmin(query) {
       };
       break;
     case 'show_all_template':
-      let actual = {
+      let allTemplates = {
         body: null,
       };
-      let error = null;
+      let allTemplatesError = null;
       try {
-        actual = await Elastic.client.indices.getTemplate({
+        allTemplates = await Elastic.client.indices.getTemplate({
           name: '*',
         });
       } catch (e) {
-        error = e;
+        allTemplatesError = e;
       }
       response.result = {
-        templates: actual.body,
-        error: error,
+        templates: allTemplates.body,
+        error: allTemplatesError,
       };
       break;
     case 'test':
