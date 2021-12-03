@@ -6,7 +6,7 @@ const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
 const Elastic = require('../modules/elastic');
 const route = 'admin';
-const commands = ['delete_all', 'refresh_template', 'show_template', 'test'];
+const commands = ['delete_all', 'refresh_template', 'show_template', 'show_all_template', 'test'];
 
 api.get(
   `/${route}`,
@@ -92,6 +92,23 @@ async function getAdmin(query) {
       response.result = {
         expected: expected,
         actual: actual.body,
+        error: error,
+      };
+      break;
+    case 'show_all_template':
+      let actual = {
+        body: null,
+      };
+      let error = null;
+      try {
+        actual = await Elastic.client.indices.getTemplate({
+          name: '*',
+        });
+      } catch (e) {
+        error = e;
+      }
+      response.result = {
+        templates: actual.body,
         error: error,
       };
       break;
