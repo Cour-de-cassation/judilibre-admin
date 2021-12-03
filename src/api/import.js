@@ -227,19 +227,19 @@ async function postImport(query) {
       try {
         const result = await indexDecision(decision);
         if (result === true) {
-          response.indexed.push(decision.sourceId);
+          response.indexed.push(decision.id);
         } else {
           response.not_indexed.push({
-            id: decision.sourceId,
+            id: decision.id,
             reason: result,
           });
         }
       } catch (e) {
         response.not_indexed.push({
-          id: decision.sourceId,
+          id: decision.id,
           reason: e.message,
         });
-        console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.sourceId}`);
+        console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.id}`);
         console.error(e);
       }
     }
