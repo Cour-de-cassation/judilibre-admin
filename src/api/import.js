@@ -132,6 +132,12 @@ api.post(
       errorMessage: `Decision.nac must be a string.`,
       optional: true,
     },
+    'decisions.*.portalis': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.portalis must be a string.`,
+      optional: true,
+    },
     'decisions.*.update_date': {
       in: 'body',
       isISO8601: true,
@@ -277,6 +283,9 @@ async function indexDecision(decision) {
   }
   if (decision.nac) {
     document.nac = decision.nac;
+  }
+  if (decision.portalis) {
+    document.portalis = decision.portalis;
   }
   if (decision.update_date) {
     document.update_date = decision.update_date;

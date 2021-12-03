@@ -226,6 +226,9 @@
       "nac": {
         "type": "keyword"
       },
+      "portalis": {
+        "type": "keyword"
+      },
       "formation": {
         "type": "keyword"
       },
