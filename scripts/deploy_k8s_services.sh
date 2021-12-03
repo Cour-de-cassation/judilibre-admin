@@ -238,6 +238,23 @@ if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
         fi;
 fi;
 
+if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local"]; then
+        if (${KUBECTL} get namespace --namespace=mongodb | grep -v 'No resources' | grep -q 'mongodb' >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "✓   mongodb k8s controller";
+        else
+                if (
+                        (
+                        ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml
+                        && ${KUBECTL} create namespace mongodb
+                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml
+                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml
+                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml
+                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+
+                )
+
+
+
 #create configMap for elasticsearch stopwords
 : ${STOPWORDS:=./elastic/config/analysis/stopwords_judilibre.txt}
 if [ "${APP_GROUP}" == "judilibre" ];then
