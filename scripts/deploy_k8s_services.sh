@@ -450,7 +450,7 @@ export START_TIMEOUT=$timeout
 ./scripts/wait_services_readiness.sh || exit 1;
 
 # elasticsearch init
-: ${ELASTIC_TEMPLATE:=./elastic/template-medium.json}
+: ${ELASTIC_TEMPLATE:=./elastic/template.json}
 
 export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 
