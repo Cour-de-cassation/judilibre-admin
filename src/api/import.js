@@ -102,6 +102,12 @@ api.post(
       errorMessage: `Decision has no text.`,
       optional: false,
     },
+    'decisions.*.displayText': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision has no display text.`,
+      optional: false,
+    },
     'decisions.*.ecli': {
       in: 'body',
       isString: true,
@@ -124,6 +130,12 @@ api.post(
       in: 'body',
       isString: true,
       errorMessage: `Decision.nac must be a string.`,
+      optional: true,
+    },
+    'decisions.*.portalis': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.portalis must be a string.`,
       optional: true,
     },
     'decisions.*.update_date': {
@@ -221,19 +233,19 @@ async function postImport(query) {
       try {
         const result = await indexDecision(decision);
         if (result === true) {
-          response.indexed.push(decision.sourceId);
+          response.indexed.push(decision.id);
         } else {
           response.not_indexed.push({
-            id: decision.sourceId,
+            id: decision.id,
             reason: result,
           });
         }
       } catch (e) {
         response.not_indexed.push({
-          id: decision.sourceId,
+          id: decision.id,
           reason: e.message,
         });
-        console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.sourceId}`);
+        console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.id}`);
         console.error(e);
       }
     }
@@ -252,6 +264,7 @@ async function indexDecision(decision) {
   document.version = decision.version;
   document.source = decision.source;
   document.text = decision.text;
+  document.displayText = decision.displayText;
   document.chamber = decision.chamber;
   document.decision_date = decision.decision_date;
   document.jurisdiction = decision.jurisdiction;
@@ -270,6 +283,9 @@ async function indexDecision(decision) {
   }
   if (decision.nac) {
     document.nac = decision.nac;
+  }
+  if (decision.portalis) {
+    document.portalis = decision.portalis;
   }
   if (decision.update_date) {
     document.update_date = decision.update_date;

@@ -128,7 +128,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
                         if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                ./scripts/docker-build.sh;
+                                ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
                                 docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
                                 (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
                                 echo -e "⤵️   Docker image imported to k3s";
@@ -225,16 +225,43 @@ else
         fi;
 fi;
 
-#install elasticsearch kube cluster controller
-if (${KUBECTL} get elasticsearch >> ${KUBE_INSTALL_LOG} 2>&1); then
-        echo "✓   elasticsearch k8s controller";
-else
-        if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.7.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.7.0/operator.yaml) >> ${KUBE_INSTALL_LOG} 2>&1); then
-                echo "🚀  elasticsearch k8s controller";
+#install elasticsearch kube cluster controller (in supervision and judilibre public envs)
+if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
+        if (${KUBECTL} get elasticsearch >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "✓   elasticsearch k8s controller";
         else
-                echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
+                if ( (${KUBECTL} create -f https://download.elastic.co/downloads/eck/1.8.0/crds.yaml && ${KUBECTL} apply -f https://download.elastic.co/downloads/eck/1.8.0/operator.yaml) >> ${KUBE_INSTALL_LOG} 2>&1); then
+                        echo "🚀  elasticsearch k8s controller";
+                else
+                        echo -e "\e[31m❌  elasticsearch k8s controller install failed" && exit 1;
+                fi;
         fi;
 fi;
+
+if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
+        if (${KUBECTL} get namespace --namespace=mongodb | grep -v 'No resources' | grep -q 'mongodb' >> ${KUBE_INSTALL_LOG} 2>&1); then
+                echo "✓   mongodb k8s controller";
+        else
+                if (
+                        (
+                                ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
+                                && ${KUBECTL} create namespace mongodb \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+                        ) >> ${KUBE_INSTALL_LOG} 2>&1
+                ); then
+                        echo "🚀  mongodb k8s controller";
+                else
+                        echo -e "\e[31m❌  mongodb k8s controller\e[0m" && exit 1;
+                fi
+        fi
+fi
+
+
+
+
 
 #create configMap for elasticsearch stopwords
 : ${STOPWORDS:=./elastic/config/analysis/stopwords_judilibre.txt}
@@ -431,7 +458,7 @@ export START_TIMEOUT=$timeout
 ./scripts/wait_services_readiness.sh || exit 1;
 
 # elasticsearch init
-: ${ELASTIC_TEMPLATE:=./elastic/template-medium.json}
+: ${ELASTIC_TEMPLATE:=./elastic/template.json}
 
 export ELASTIC_NODE="https://elastic:${ELASTIC_ADMIN_PASSWORD}@localhost:9200"
 

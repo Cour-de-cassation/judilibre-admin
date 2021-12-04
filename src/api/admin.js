@@ -6,7 +6,7 @@ const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
 const Elastic = require('../modules/elastic');
 const route = 'admin';
-const commands = ['delete_all', 'refresh_template', 'show_template', 'test'];
+const commands = ['delete_all', 'refresh_template', 'show_template', 'show_all_templates', 'test'];
 
 api.get(
   `/${route}`,
@@ -53,35 +53,74 @@ async function getAdmin(query) {
   };
   switch (query.command) {
     case 'delete_all':
-      const deleteResult = await Elastic.client.indices.delete({
-        index: process.env.ELASTIC_INDEX,
-      });
-      response.result = deleteResult.body;
+      try {
+        const deleteResult = await Elastic.client.indices.delete({
+          index: process.env.ELASTIC_INDEX,
+        });
+        response.result = deleteResult.body;
+      } catch (e) {
+        response.result = e;
+      }
       break;
     case 'refresh_template':
-      const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
-      const refreshResult = await Elastic.client.indices.putTemplate({
-        name: 't_judilibre',
-        create: false,
-        body: template,
-      });
-      response.result = refreshResult.body;
+      try {
+        const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
+        const refreshResult = await Elastic.client.indices.putTemplate({
+          name: 't_judilibre',
+          create: false,
+          body: template,
+        });
+        response.result = refreshResult.body;
+      } catch (e) {
+        response.result = e;
+      }
       break;
     case 'show_template':
-      const expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
-      const actual = await Elastic.client.indices.getTemplate({
-        name: 't_judilibre',
-      });
+      let expected = null;
+      let actual = {
+        body: null,
+      };
+      let error = null;
+      try {
+        expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
+        actual = await Elastic.client.indices.getTemplate({
+          name: 't_judilibre',
+        });
+      } catch (e) {
+        error = e;
+      }
       response.result = {
         expected: expected,
         actual: actual.body,
+        error: error,
+      };
+      break;
+    case 'show_all_templates':
+      let allTemplates = {
+        body: null,
+      };
+      let allTemplatesError = null;
+      try {
+        allTemplates = await Elastic.client.indices.getTemplate({
+          name: '*',
+        });
+      } catch (e) {
+        allTemplatesError = e;
+      }
+      response.result = {
+        templates: allTemplates.body,
+        error: allTemplatesError,
       };
       break;
     case 'test':
-      const ping = await Elastic.client.ping({});
-      if (ping.body === true && ping.statusCode === 200) {
-        response.result = 'disponible';
-      } else {
+      try {
+        const ping = await Elastic.client.ping({});
+        if (ping.body === true && ping.statusCode === 200) {
+          response.result = 'disponible';
+        } else {
+          response.result = 'indisponible';
+        }
+      } catch (e) {
         response.result = 'indisponible';
       }
       break;
