@@ -244,14 +244,22 @@ if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local"]; then
         else
                 if (
                         (
-                        ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml
-                        && ${KUBECTL} create namespace mongodb
-                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml
-                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml
-                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml
-                        && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+                                ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
+                                && ${KUBECTL} create namespace mongodb \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
+                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+                        ) >> ${KUBE_INSTALL_LOG} 2>&1
+                ); then
+                        echo "🚀  mongodb k8s controller";
+                else
+                        echo -e "\e[31m❌  mongodb k8s controller\e[0m" && exit 1;
+                fi
+        fi
+fi
 
-                )
+
 
 
 
