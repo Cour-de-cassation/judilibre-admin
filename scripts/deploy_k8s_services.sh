@@ -128,7 +128,7 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
                         if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                ./scripts/docker-build.sh || exit 1;
+                                ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
                                 docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
                                 (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
                                 echo -e "⤵️   Docker image imported to k3s";
@@ -238,7 +238,7 @@ if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
         fi;
 fi;
 
-if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local"]; then
+if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
         if (${KUBECTL} get namespace --namespace=mongodb | grep -v 'No resources' | grep -q 'mongodb' >> ${KUBE_INSTALL_LOG} 2>&1); then
                 echo "✓   mongodb k8s controller";
         else
