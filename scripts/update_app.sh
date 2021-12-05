@@ -16,8 +16,6 @@ fi;
 
 #perform update
 kubectl set image --namespace=${KUBE_NAMESPACE} deployments/${APP_ID}-deployment ${APP_ID}=${DOCKER_USERNAME}/${APP_ID}:${VERSION}
-./scripts/wait_services_readiness.sh
 
-# test and rollback if fail
-./scripts/test_minimal.sh || (kubectl rollout undo deployments/${APP_ID}-deployment && exit 1)
-
+#test or rollback
+( ./scripts/wait_services_readiness.sh && ./scripts/test_minimal.sh ) || (kubectl -n ${KUBE_NAMESPACE} rollout undo deployments/${APP_ID}-deployment && exit 1)
