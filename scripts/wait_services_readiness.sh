@@ -1,6 +1,7 @@
 # wait for k8s pods to be ready
 : "${KUBECTL:=kubectl}"
 
+: ${START_TIMEOUT:=60}
 timeout=${START_TIMEOUT} ;
 for POD in ${APP_ID} ${APP_GROUP}-es; do
     ret=1 ;\
