@@ -123,8 +123,14 @@ CERT_ALTER_SPEC
 fi
 
 if [ -z "${KUBE_SERVICES}" ];then
-        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
+        export KUBE_SERVICES="service deployment"
+        if [ "${APP_GROUP}" == "judilibre-prive" ]; then
+                export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
+        else
+                export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch ${KUBE_SERVICES}";
+        fi;
 fi
+
 if [ "${KUBE_ZONE}" == "local" ]; then
         #register host if not already done
         if ! (grep -q ${APP_HOST} /etc/hosts); then
@@ -238,6 +244,7 @@ if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
         fi;
 fi;
 
+## install mongodb kube cluster controller (in judilibre prive / local mode for CI)
 if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
         if (${KUBECTL} get namespace --namespace=mongodb | grep -v 'No resources' | grep -q 'mongodb' >> ${KUBE_INSTALL_LOG} 2>&1); then
                 echo "✓   mongodb k8s controller";
@@ -245,11 +252,10 @@ if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
                 if (
                         (
                                 ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
-                                && ${KUBECTL} create namespace mongodb \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/manager/manager.yaml
                         ) >> ${KUBE_INSTALL_LOG} 2>&1
                 ); then
                         echo "🚀  mongodb k8s controller";
@@ -345,13 +351,13 @@ for resource in ${KUBE_SERVICES}; do
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                 else
-                        if [[ "${APP_ID}" == *"admin" ]]; then
+                        if [ "${APP_ID}" == "judilibre-admin" ]; then
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1); then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
-                        else
+                        elif [ "${APP_GROUP}" != "judilibre-prive" ]; then
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://search:${ELASTIC_SEARCH_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1);then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
@@ -360,7 +366,7 @@ for resource in ${KUBE_SERVICES}; do
                         fi;
                 fi;
                 # api secret / password is dummy for search API, only used in admin api
-                if [ -z "${HTTP_PASSWD}" ];then
+                if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
                         export HTTP_PASSWD=$(openssl rand -hex 32)
                         echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
                 fi
