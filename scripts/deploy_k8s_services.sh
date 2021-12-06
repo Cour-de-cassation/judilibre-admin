@@ -33,6 +33,25 @@ if [ -z "${APP_ENV_SPEC}" ];then
         export APP_ENV_SPEC=" "
 fi;
 
+#get current branch
+if [ -z "${GIT_BRANCH}" ];then
+        export GIT_BRANCH=$(git branch | grep '*' | awk '{print $2}');
+fi;
+
+#default k8s namespace
+if [ -z "${KUBE_NAMESPACE}" ]; then
+        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
+fi;
+
+#display env if DEBUG
+if [ ! -z "${APP_DEBUG}" ]; then
+        env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
+fi;
+
+if [ -z "${ELASTIC_VERSION}" ];then
+        export ELASTIC_VERSION=7.15.2;
+fi;
+
 if [ -z "${KUBECTL}" ]; then
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 if (which oc > /dev/null); then
@@ -179,25 +198,6 @@ else
         fi;
 fi;
 
-
-#get current branch
-if [ -z "${GIT_BRANCH}" ];then
-        export GIT_BRANCH=$(git branch | grep '*' | awk '{print $2}');
-fi;
-
-#default k8s namespace
-if [ -z "${KUBE_NAMESPACE}" ]; then
-        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
-fi;
-
-#display env if DEBUG
-if [ ! -z "${APP_DEBUG}" ]; then
-        env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
-fi;
-
-if [ -z "${ELASTIC_VERSION}" ];then
-        export ELASTIC_VERSION=7.15.2;
-fi;
 
 
 #create namespace first
