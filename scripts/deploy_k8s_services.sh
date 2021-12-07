@@ -254,7 +254,10 @@ if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
                                 ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
                                 && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
                                 && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding_database.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account_database.yaml \
                                 && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_database.yaml \
                                 && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/manager/manager.yaml
                         ) >> ${KUBE_INSTALL_LOG} 2>&1
                 ); then
