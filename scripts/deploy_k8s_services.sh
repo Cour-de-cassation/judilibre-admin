@@ -137,7 +137,11 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
         fi;
         #assume local kube conf (minikube or k3s)
-        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+        if [ "${APP_GROUP}" == "judilibre-prive" ];then
+                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+        else
+                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+        fi;
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
                 if [ -z "${KUBE_TYPE}" ]; then
                         # prefer k3s for velocity of install and startup in CI
@@ -152,6 +156,15 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
+                        if (
+                              (
+                                ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
+                              ) > ${KUBE_INSTALL_LOG} 2>&1
+                           ); then
+                                echo "🚀  traefik crd";
+                        else
+                                echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
+                        fi;
                         if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
                                 ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
                                 docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
@@ -195,7 +208,7 @@ else
                         if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  cert-manager";
                         else
-                                echo -e "\e[31m❌  cert-manager";
+                                echo -e "\e[31m❌  cert-manager\e[0m" && exit 1;
                         fi;
                 fi;
         fi;
