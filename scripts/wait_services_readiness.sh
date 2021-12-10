@@ -4,7 +4,7 @@
 if [ "${APP_GROUP}" == "judilibre-prive" ];then
         APP_DB=mongodb;
 else
-        APP_DB=${APP_GROUP}-es:
+        APP_DB=${APP_GROUP}-es;
 fi
 
 : ${START_TIMEOUT:=60}
