@@ -131,6 +131,25 @@ if [ -z "${KUBE_SERVICES}" ];then
         fi;
 fi
 
+if [ "${APP_GROUP}" == "judilibre-prive" ];then
+        if [ -z "${MONGODB_PASSWORD}" ]; then
+                export MONGODB_PASSWORD=$(openssl rand -hex 32)
+        fi
+        if [ -z "${INTERNAL_DB_URI}" ]; then
+                export INTERNAL_DB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+        fi
+        if [ -z "${EXTERNAL_DB_URI}" ]; then
+                export EXTERNAL_DB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+        fi
+        if [ -z "${INTERNAL_DB_NAME}" ]; then
+                export INTERNAL_DB_NAME=internal
+        fi
+        if [ -z "${EXTERNAL_DB_NAME}" ]; then
+                export EXTERNAL_DB_NAME=external
+        fi
+fi
+
+
 if [ "${KUBE_ZONE}" == "local" ]; then
         #register host if not already done
         if ! (grep -q ${APP_HOST} /etc/hosts); then
