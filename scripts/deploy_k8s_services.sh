@@ -33,6 +33,25 @@ if [ -z "${APP_ENV_SPEC}" ];then
         export APP_ENV_SPEC=" "
 fi;
 
+#get current branch
+if [ -z "${GIT_BRANCH}" ];then
+        export GIT_BRANCH=$(git branch | grep '*' | awk '{print $2}');
+fi;
+
+#default k8s namespace
+if [ -z "${KUBE_NAMESPACE}" ]; then
+        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
+fi;
+
+#display env if DEBUG
+if [ ! -z "${APP_DEBUG}" ]; then
+        env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
+fi;
+
+if [ -z "${ELASTIC_VERSION}" ];then
+        export ELASTIC_VERSION=7.15.2;
+fi;
+
 if [ -z "${KUBECTL}" ]; then
         if [ "${KUBE_TYPE}" == "openshift" ]; then
                 if (which oc > /dev/null); then
@@ -104,15 +123,44 @@ CERT_ALTER_SPEC
 fi
 
 if [ -z "${KUBE_SERVICES}" ];then
-        export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch service deployment";
+        export KUBE_SERVICES="service deployment"
+        if [ "${APP_GROUP}" == "judilibre-prive" ]; then
+                export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
+        else
+                export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch ${KUBE_SERVICES}";
+        fi;
 fi
+
+if [ "${APP_GROUP}" == "judilibre-prive" ];then
+        if [ -z "${MONGODB_PASSWORD}" ]; then
+                export MONGODB_PASSWORD=$(openssl rand -hex 32)
+        fi
+        if [ -z "${INTERNAL_DB_URI}" ]; then
+                export INTERNAL_DB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+        fi
+        if [ -z "${EXTERNAL_DB_URI}" ]; then
+                export EXTERNAL_DB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+        fi
+        if [ -z "${INTERNAL_DB_NAME}" ]; then
+                export INTERNAL_DB_NAME=internal
+        fi
+        if [ -z "${EXTERNAL_DB_NAME}" ]; then
+                export EXTERNAL_DB_NAME=external
+        fi
+fi
+
+
 if [ "${KUBE_ZONE}" == "local" ]; then
         #register host if not already done
         if ! (grep -q ${APP_HOST} /etc/hosts); then
                 (echo $(grep "127.0.0.1" /etc/hosts) ${APP_HOST} | sudo tee -a /etc/hosts > /dev/null 2>&1);
         fi;
         #assume local kube conf (minikube or k3s)
-        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+        if [ "${APP_GROUP}" == "judilibre-prive" ];then
+                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+        else
+                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+        fi;
         if ! (${KUBECTL} version 2>&1 | grep -q Server); then
                 if [ -z "${KUBE_TYPE}" ]; then
                         # prefer k3s for velocity of install and startup in CI
@@ -127,6 +175,15 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
+                        if (
+                              (
+                                ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
+                              ) > ${KUBE_INSTALL_LOG} 2>&1
+                           ); then
+                                echo "🚀  traefik crd";
+                        else
+                                echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
+                        fi;
                         if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
                                 ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
                                 docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
@@ -170,7 +227,7 @@ else
                         if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  cert-manager";
                         else
-                                echo -e "\e[31m❌  cert-manager";
+                                echo -e "\e[31m❌  cert-manager\e[0m" && exit 1;
                         fi;
                 fi;
         fi;
@@ -179,25 +236,6 @@ else
         fi;
 fi;
 
-
-#get current branch
-if [ -z "${GIT_BRANCH}" ];then
-        export GIT_BRANCH=$(git branch | grep '*' | awk '{print $2}');
-fi;
-
-#default k8s namespace
-if [ -z "${KUBE_NAMESPACE}" ]; then
-        export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-$(echo ${GIT_BRANCH} | tr '/' '-')
-fi;
-
-#display env if DEBUG
-if [ ! -z "${APP_DEBUG}" ]; then
-        env | egrep '^(VERSION|KUBE|DOCKER_IMAGE|GIT_TOKEN|APP_|ELASTIC_)' | sort
-fi;
-
-if [ -z "${ELASTIC_VERSION}" ];then
-        export ELASTIC_VERSION=7.15.2;
-fi;
 
 
 #create namespace first
@@ -238,6 +276,7 @@ if [ "${APP_GROUP}" == "monitor" -o "${APP_GROUP}" == "judilibre" ];then
         fi;
 fi;
 
+## install mongodb kube cluster controller (in judilibre prive / local mode for CI)
 if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
         if (${KUBECTL} get namespace --namespace=mongodb | grep -v 'No resources' | grep -q 'mongodb' >> ${KUBE_INSTALL_LOG} 2>&1); then
                 echo "✓   mongodb k8s controller";
@@ -245,11 +284,13 @@ if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
                 if (
                         (
                                 ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
-                                && ${KUBECTL} create namespace mongodb \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
-                                && ${KUBECTL} apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_binding_database.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/service_account_database.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/rbac/role_database.yaml \
+                                && ${KUBECTL} apply -n ${KUBE_NAMESPACE} -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes-operator/master/config/manager/manager.yaml
                         ) >> ${KUBE_INSTALL_LOG} 2>&1
                 ); then
                         echo "🚀  mongodb k8s controller";
@@ -345,22 +386,27 @@ for resource in ${KUBE_SERVICES}; do
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth >> ${KUBE_INSTALL_LOG} 2>&1); then
                         echo "✓   secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                 else
-                        if [[ "${APP_ID}" == *"admin" ]]; then
+                        if [ "${APP_ID}" == "judilibre-admin" ]; then
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://elastic:${ELASTIC_ADMIN_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1); then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
-                        else
+                        elif [ "${APP_GROUP}" != "judilibre-prive" ]; then
                                 if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-es-path-with-auth --from-literal="elastic-node=https://search:${ELASTIC_SEARCH_PASSWORD}@${APP_GROUP}-es-http:9200" >> ${KUBE_INSTALL_LOG} 2>&1);then
                                         echo "🚀  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth";
                                 else
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
+                        else # judilibre-prive
+                                ./scripts/generate-certificate.sh;
+                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key;
+                                cp server.crt tls.crt
+                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert-public --from-file=tls.crt;
                         fi;
                 fi;
                 # api secret / password is dummy for search API, only used in admin api
-                if [ -z "${HTTP_PASSWD}" ];then
+                if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
                         export HTTP_PASSWD=$(openssl rand -hex 32)
                         echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
                 fi

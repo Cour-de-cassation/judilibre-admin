@@ -1,0 +1,26 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: ServersTransport
+metadata:
+  name: mytransport
+  namespace: ${KUBE_NAMESPACE}
+spec:
+  insecureSkipVerify: true
+  ## WIP: try to enable real cert shake with backend
+  # rootCAsSecrets:
+  #   - deployment-cert-public
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ${APP_ID}-route
+  namespace: ${KUBE_NAMESPACE}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`${APP_HOST}`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: ${APP_ID}-svc
+          port: 443
+          serversTransport: mytransport

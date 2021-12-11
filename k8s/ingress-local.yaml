@@ -5,7 +5,8 @@ metadata:
   namespace: ${KUBE_NAMESPACE}
 spec:
   rules:
-  - http:
+  - host: ${APP_HOST}
+    http:
       paths:
       - path: /
         pathType: Prefix

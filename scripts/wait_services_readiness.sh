@@ -1,8 +1,15 @@
 # wait for k8s pods to be ready
 : "${KUBECTL:=kubectl}"
 
+if [ "${APP_GROUP}" == "judilibre-prive" ];then
+        APP_DB=mongodb-0;
+else
+        APP_DB=${APP_GROUP}-es;
+fi
+
+: ${START_TIMEOUT:=60}
 timeout=${START_TIMEOUT} ;
-for POD in ${APP_ID} ${APP_GROUP}-es; do
+for POD in ${APP_ID} ${APP_DB}; do
     ret=1 ;\
     until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do\
             status=$(${KUBECTL} get pod --namespace=${KUBE_NAMESPACE} | grep ${POD} | awk '{print $2}');

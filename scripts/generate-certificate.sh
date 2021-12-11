@@ -16,7 +16,7 @@ if [ ! -f server.crt -o ! -f server.key ];then
         openssl rsa -passin pass:${PASS} -in server.pass.key -out server.key
         rm server.pass.key
         APP_OU=$(echo ${APP_HOST} | sed 's/[^\.]*.//')
-        openssl req -new -key server.key -out server.csr -subj "/C=FR/ST=Paris/L=Paris/O=cour-de-cassation.justice.fr/OU=${APP_OU}/CN=${APP_HOST}"
+        openssl req -new -key server.key -out server.csr -subj "/C=FR/ST=Paris/L=Paris/O=cour-de-cassation.justice.fr/OU=${APP_OU}/CN=${APP_HOST}/subjectAltName=${APP_ID}-svc.${KUBE_NAMESPACE}.svc.cluster.local"
         openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
     ) 2>&1 | awk '{print "    " $0}'
     echo "✓   Self-signed cert generated"
