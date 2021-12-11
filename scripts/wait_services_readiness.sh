@@ -2,7 +2,7 @@
 : "${KUBECTL:=kubectl}"
 
 if [ "${APP_GROUP}" == "judilibre-prive" ];then
-        APP_DB=mongodb;
+        APP_DB=mongodb-0;
 else
         APP_DB=${APP_GROUP}-es;
 fi
