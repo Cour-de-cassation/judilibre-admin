@@ -7,6 +7,11 @@ if [ ! -z "${APP_SELF_SIGNED}" ];then
   export CURL="${CURL} -k"
 fi;
 
+if [ "${ACME}" == "acme-staging" ];then
+  curl -s https://letsencrypt.org/certs/fakelerootx1.pem -o fakelerootx1.pem
+  export CURL="${CURL} --cacert fakelerootx1.pem"
+fi;
+
 for route in "admin?command=test";do
   if ${CURL} "${APP_SCHEME}://admin:${HTTP_PASSWD}@${APP_HOST}:${APP_PORT}/${route}" | grep -q 'disponible' ; then
     echo "✅  test api ${APP_HOST}/${route} ";
