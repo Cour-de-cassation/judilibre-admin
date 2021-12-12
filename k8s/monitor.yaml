@@ -40,6 +40,8 @@ spec:
           env:
           - name: ES_JAVA_OPTS
             value: -Xms${ELASTIC_MEM_JVM} -Xmx${ELASTIC_MEM_JVM}
+          - name: LOG4J_FORMAT_MSG_NO_LOOKUPS
+            value: "true"
           resources:
             requests:
               memory: ${ELASTIC_MEM}
