@@ -12,6 +12,7 @@ jobs:
     env:
       ENV_SCW_SBX_PAR1: ${{ secrets.ENV_SCW_SBX_PAR1 }}
       ENV_SCW_SBX_PAR2: ${{ secrets.ENV_SCW_SBX_PAR2 }}
+      DNS_ROOT: judilibre.fr
     steps:
       - uses: actions/checkout@v1
       - name: set random DNS
@@ -28,8 +29,8 @@ jobs:
         id: create_environment
         run: |
           mkdir -p ${HOME}/.kube
-          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
-          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
+          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
+          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
           export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
           (./scripts/create_environment.sh | stdbuf -o0 egrep -vi  'wait' | stdbuf -o0 awk '(NF)') || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
           echo "##[set-output name=status;]success"
