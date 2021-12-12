@@ -7,9 +7,9 @@ if [ -z "${DYNAMIC_DNS}" -o -z "${DYNAMIC_DNS_IP}" -o -z "${DYNAMIC_DNS_IP_ALTER
     exit 0;
 fi;
 
-SCW_DNS_ZONE=$(curl -s "${SCW_DNS_API}" -H "X-Auth-Token: ${SCW_DNS_SECRET_TOKEN}"  | jq -r '.dns_zones[0].domain')
+export SCW_DNS_ZONE=$(echo ${APP_HOST} | sed 's/.*\.\([^\.]*\.[^\.]*$\)/\1/')
 
-if [ -z "${SCW_DNS_ZONE}" ];then
+if [ "${SCW_DNS_ZONE}" != "$(curl -s "${SCW_DNS_API}" -H "X-Auth-Token: ${SCW_DNS_SECRET_TOKEN}" | jq -r '.dns_zones[] | select (.domain == "'${SCW_DNS_ZONE}'") | .domain')" ];then
     echo -e "\e[31m❌  DNS - failed to get dns zone" && exit 1;
 fi
 
