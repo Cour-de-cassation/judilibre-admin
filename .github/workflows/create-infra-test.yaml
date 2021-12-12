@@ -32,8 +32,7 @@ jobs:
           echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
           echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
           export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
-          (./scripts/create_environment.sh | stdbuf -o0 egrep -vi  'wait' | stdbuf -o0 awk '(NF)') || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
-          echo "##[set-output name=status;]success"
+          ./scripts/create_environment.sh || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           DNS_RAND: ${{ steps.extract_dns.outputs.dns }}
@@ -43,9 +42,7 @@ jobs:
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par1 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par2 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
           rm -f ${ENV_FILES}
-          if [ "${STATUS}" == "success" ]; then
-            exit 0;
-          else
+          if [ "${STATUS}" == "failure" ]; then
             exit 1;
           fi;
         env:
