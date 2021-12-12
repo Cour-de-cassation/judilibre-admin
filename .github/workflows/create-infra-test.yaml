@@ -25,12 +25,14 @@ jobs:
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
       - name: ☸️ create_environment
+        id: create_environment
         run: |
           mkdir -p ${HOME}/.kube
           echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
           echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx/.sbx-${DNS_RAND}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
           export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
-          (./scripts/create_environment.sh | stdbuf -o0 egrep -vi  'wait' | stdbuf -o0 awk '(NF)') || (echo "Failure logs:" && cat k8s*log && exit 1)
+          (./scripts/create_environment.sh | stdbuf -o0 egrep -vi  'wait' | stdbuf -o0 awk '(NF)') || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
+          echo "##[set-output name=status;]success"
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           DNS_RAND: ${{ steps.extract_dns.outputs.dns }}
@@ -40,3 +42,10 @@ jobs:
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par1 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
           curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par2 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
           rm -f ${ENV_FILES}
+          if [ "${STATUS}" == "success" ]; then
+            exit 0;
+          else
+            exit 1;
+          fi;
+        env:
+          STATUS: ${{ steps.create_environment.outputs.status }}
