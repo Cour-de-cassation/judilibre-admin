@@ -13,7 +13,7 @@ for POD in ${APP_ID} ${APP_DB}; do
     ret=1 ;\
     until [ "$timeout" -le 0 -o "$ret" -eq "0" ] ; do\
             status=$(${KUBECTL} get pod --namespace=${KUBE_NAMESPACE} | grep ${POD} | awk '{print $2}');
-            (echo $status | grep -v '0/1' | grep -q '1/1' );\
+            (echo $status | egrep -v '0/1|0/2|1/2' | egrep -q '1/1|2/2' );\
             ret=$? ; \
             if [ "$ret" -ne "0" ] ; then printf "\r\033[2K%03d Wait for service ${POD} to be ready" $timeout ; fi ;\
             ((timeout--)); sleep 1 ; \
