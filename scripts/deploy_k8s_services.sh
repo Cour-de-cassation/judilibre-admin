@@ -433,7 +433,7 @@ for resource in ${KUBE_SERVICES}; do
         if ( ! (echo ${KUBE_SERVICES_FORCE_UPDATE} | tr ' ' '\n' | grep -q ${resource}) ) && (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
-                if [ "${resource}" == "ingress" ]; then
+                if [ "${resource}" == "ingress" -a "${APP_GROUP}" != "monitor" ]; then
                         export IP_WHITELIST=$(./scripts/whitelist.sh)
                 fi
                 # don't substitute empty vars, allowing them to be receplaced within kube itself
