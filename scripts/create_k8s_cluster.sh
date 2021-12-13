@@ -29,7 +29,7 @@ fi;
 : ${SCW_REGION:="fr-par"}
 : ${SCW_KUBE_API:="https://api.scaleway.com/k8s/v1/regions/${SCW_REGION}/clusters"}
 : ${SCW_KUBE_NODES:=3}
-: ${SCW_KUBE_VERSION:="1.22.3"}
+: ${SCW_KUBE_VERSION:="1.23.0"}
 
 : ${SCW_ZONE:="fr-par-1"}
 : ${SCW_SERVER_API:="https://api.scaleway.com/instance/v1/zones/${SCW_ZONE}/servers"}
@@ -60,12 +60,12 @@ if [ -z "${SCW_KUBE_ID}" ];then
                             -d ${SCW_KUBE_CLUSTERCONFIG} | jq -r '.id' | grep -v null)
 
     if [ ! -z "${SCW_KUBE_ID}" ]; then
-        echo "🚀  k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}";
+        echo "🚀  k8s ${SCW_KUBE_VERSION} cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}";
     else
-        echo -e "\e[31m❌  k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} !" && exit 1;
+        echo -e "\e[31m❌  k8s ${SCW_KUBE_VERSION} cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE} !" && exit 1;
     fi;
 else
-    echo "✓   k8s cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}"
+    echo "✓   k8s ${SCW_KUBE_VERSION} cluster ${SCW_KUBE_PROJECT_NAME}-${SCW_ZONE}"
 fi
 
 timeout=${START_TIMEOUT}

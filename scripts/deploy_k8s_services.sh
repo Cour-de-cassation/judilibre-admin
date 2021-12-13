@@ -224,7 +224,7 @@ else
                 if (${KUBECTL} get namespaces --namespace=cert-manager | grep -v 'No resources' | grep -q cert-manager); then
                         echo "✓   cert-manager";
                 else
-                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.0/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
+                        if (${KUBECTL} apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  cert-manager";
                         else
                                 echo -e "\e[31m❌  cert-manager\e[0m" && exit 1;
@@ -433,7 +433,7 @@ for resource in ${KUBE_SERVICES}; do
         if ( ! (echo ${KUBE_SERVICES_FORCE_UPDATE} | tr ' ' '\n' | grep -q ${resource}) ) && (${KUBECTL} get ${RESOURCETYPE} --namespace=${NAMESPACE} 2>&1 | grep -v 'No resources' | grep -q ${RESOURCENAME}); then
                 echo "✓   ${resource} ${NAMESPACE}/${RESOURCENAME}";
         else
-                if [ "${resource}" == "ingress" ]; then
+                if [ "${resource}" == "ingress" -a "${APP_GROUP}" != "monitor" ]; then
                         export IP_WHITELIST=$(./scripts/whitelist.sh)
                 fi
                 # don't substitute empty vars, allowing them to be receplaced within kube itself
