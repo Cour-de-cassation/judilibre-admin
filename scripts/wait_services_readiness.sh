@@ -1,8 +1,10 @@
 # wait for k8s pods to be ready
 : "${KUBECTL:=kubectl}"
 
-if [ "${APP_GROUP}" == "judilibre-prive" ];then
-        APP_DB=mongodb-0;
+if [ "${APP_GROUP}" == "judilibre-prive" ]; then
+        if [ "${KUBE_ZONE}" == "local" ];then
+                APP_DB=mongodb-0;
+        fi;
 else
         APP_DB=${APP_GROUP}-es;
 fi
