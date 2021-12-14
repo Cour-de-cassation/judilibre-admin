@@ -124,7 +124,7 @@ fi
 
 if [ -z "${KUBE_SERVICES}" ];then
         export KUBE_SERVICES="service deployment"
-        if [ "${APP_GROUP}" == "judilibre-prive" ]; then
+        if [ "${APP_GROUP}" == "judilibre-prive" -a "${KUBE_ZONE}" == "local" ]; then
                 export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
         else
                 export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch ${KUBE_SERVICES}";
