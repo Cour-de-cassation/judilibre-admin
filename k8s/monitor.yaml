@@ -55,6 +55,7 @@ data:
   logstash.yml: |
     http.host: "0.0.0.0"
     path.config: /usr/share/logstash/pipeline
+    pipeline.ecs_compatibility: disabled
   logstash.conf: |
     input {
       file {
