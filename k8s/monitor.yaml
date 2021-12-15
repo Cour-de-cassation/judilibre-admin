@@ -55,6 +55,7 @@ data:
   logstash.yml: |
     http.host: "0.0.0.0"
     path.config: /usr/share/logstash/pipeline
+    pipeline.ecs_compatibility: disabled
   logstash.conf: |
     input {
       file {
@@ -94,6 +95,11 @@ data:
           "[source]" => ".*/(?<kubernetes_cluster_name>judilibre-scw-[^\/]*)-(master|dev)/.*$"
         }
         tag_on_failure => [ "kubernetes_cluster_name_error" ]
+      }
+      if "kubernetes_cluster_name_error" in [tags] {
+        mutate {
+          add_field => { "kubernetes_cluster_name" => "default" }
+        }
       }
       mutate {
         rename => {
