@@ -4,7 +4,7 @@ export OS_TYPE=$(cat /etc/os-release | grep -E '^NAME=' | sed 's/^.*debian.*$/DE
 
 if ! (which envsubst > /dev/null 2>&1); then
         if [ "${OS_TYPE}" = "DEB" ]; then
-                apt-get install -yqq gettext;
+                sudo apt-get install -yqq gettext;
         fi;
         if [ "${OS_TYPE}" = "RPM" ]; then
                 sudo yum install -y gettext;
@@ -13,7 +13,7 @@ fi;
 
 if ! (which jq > /dev/null 2>&1); then
         if [ "${OS_TYPE}" = "DEB" ]; then
-                apt-get install -yqq jq;
+                sudo apt-get install -yqq jq;
         fi;
         if [ "${OS_TYPE}" = "RPM" ]; then
                 sudo yum install -y jq;
@@ -22,7 +22,7 @@ fi
 
 if ! (which htpasswd > /dev/null 2>&1); then
         if [ "${OS_TYPE}" = "DEB" ]; then
-                apt-get install -yqq apache2-utils;
+                sudo apt-get install -yqq apache2-utils;
         fi;
         if [ "${OS_TYPE}" = "RPM" ]; then
                 sudo yum install -y httpd-tools;

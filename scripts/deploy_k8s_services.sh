@@ -49,7 +49,7 @@ if [ ! -z "${APP_DEBUG}" ]; then
 fi;
 
 if [ -z "${ELASTIC_VERSION}" ];then
-        export ELASTIC_VERSION=7.15.2;
+        export ELASTIC_VERSION=7.16.1;
 fi;
 
 if [ -z "${KUBECTL}" ]; then
@@ -125,7 +125,9 @@ fi
 if [ -z "${KUBE_SERVICES}" ];then
         export KUBE_SERVICES="service deployment"
         if [ "${APP_GROUP}" == "judilibre-prive" ]; then
-                export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
+		if [ "${KUBE_ZONE}" == "local" ]; then
+                	export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
+		fi;
         else
                 export KUBE_SERVICES="elasticsearch-roles elasticsearch-users elasticsearch ${KUBE_SERVICES}";
         fi;
@@ -202,7 +204,9 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                 fi;
         fi;
 else
-        if [[ "${KUBE_ZONE}" == "scw"* ]]; then
+        if [ "${KUBE_TYPE}" == "k3s" ];then
+                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+        elif [[ "${KUBE_ZONE}" == "scw"* ]]; then
                 if [ -z "${KUBE_INGRESS}" ]; then
                         export KUBE_INGRESS=nginx
                 fi;
@@ -230,8 +234,7 @@ else
                                 echo -e "\e[31m❌  cert-manager\e[0m" && exit 1;
                         fi;
                 fi;
-        fi;
-        if [ "${KUBE_TYPE}" == "openshift" ]; then
+        elif [ "${KUBE_TYPE}" == "openshift" ]; then
                 export KUBE_SERVICES="${KUBE_SERVICES} ingressroute";
         fi;
 fi;
