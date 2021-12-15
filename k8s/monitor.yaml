@@ -96,6 +96,11 @@ data:
         }
         tag_on_failure => [ "kubernetes_cluster_name_error" ]
       }
+      if "kubernetes_cluster_name_error" in [tags] {
+        mutate {
+          add_field => { "kubernetes_cluster_name" => "default" }
+        }
+      }
       mutate {
         rename => {
           "[kubernetes_labels][app]" => "[kubernetes_labels][app.kubernetes.io/name]"
