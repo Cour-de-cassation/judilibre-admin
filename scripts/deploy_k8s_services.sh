@@ -180,7 +180,11 @@ if [ "${KUBE_ZONE}" == "local" ]; then
         fi;
         #assume local kube conf (minikube or k3s)
         if [ "${APP_GROUP}" == "judilibre-prive" ];then
-                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+                if [[ "${APP_ID}" == "judilibre-"* ]]; then
+                        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+                else
+                        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+                fi;
         else
                 export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
         fi;
@@ -226,7 +230,11 @@ if [ "${KUBE_ZONE}" == "local" ]; then
         fi;
 else
         if [ "${KUBE_TYPE}" == "k3s" ];then
-                export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+                if [[ ${APP_ID} == "judilibre-"* ]]; then
+                        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local-secure";
+                else
+                        export KUBE_SERVICES="${KUBE_SERVICES} ingress-local";
+                fi
         elif [[ "${KUBE_ZONE}" == "scw"* ]]; then
                 if [ -z "${KUBE_INGRESS}" ]; then
                         export KUBE_INGRESS=nginx
