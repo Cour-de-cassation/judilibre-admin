@@ -431,10 +431,12 @@ for resource in ${KUBE_SERVICES}; do
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
                         else # judilibre-prive
-                                ./scripts/generate-certificate.sh;
-                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key;
-                                cp server.crt tls.crt
-                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert-public --from-file=tls.crt;
+				if [[ "${APP_ID}" == "judilibre-"* ]]; then
+                                        ./scripts/generate-certificate.sh;
+                                        ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key;
+                                        cp server.crt tls.crt
+                                        ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert-public --from-file=tls.crt;
+				fi;
                         fi;
                 fi;
                 # api secret / password is dummy for search API, only used in admin api
