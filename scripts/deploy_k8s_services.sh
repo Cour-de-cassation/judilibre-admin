@@ -413,6 +413,9 @@ for resource in ${KUBE_SERVICES}; do
                 RESOURCENAME=${APP_GROUP};
                 RESOURCETYPE=Elasticsearch;
         fi;
+        if [ -f "scripts/pre-${resource}.sh" ];then
+                ./script/pre-${resource}.sh
+        fi
         if [ "${resource}" == "deployment" ]; then
                 # elastic secrets
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth >> ${KUBE_INSTALL_LOG} 2>&1); then
@@ -549,6 +552,9 @@ for resource in ${KUBE_SERVICES}; do
                         fi;
                 fi;
         fi;
+        if [ -f "scripts/post-${resource}.sh" ];then
+                ./script/post-${resource}.sh
+        fi
 done;
 
 export START_TIMEOUT=$timeout
