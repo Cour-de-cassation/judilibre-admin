@@ -445,7 +445,7 @@ for resource in ${KUBE_SERVICES}; do
                         echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
                 fi
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
-                        echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwpasswdord";
+                        echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwd";
                 else
                         if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
                                 echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
