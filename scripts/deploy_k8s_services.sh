@@ -433,24 +433,42 @@ for resource in ${KUBE_SERVICES}; do
                         else # judilibre-prive
 				if [[ "${APP_ID}" == "judilibre-"* ]]; then
                                         ./scripts/generate-certificate.sh;
-                                        ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key;
-                                        cp server.crt tls.crt
-                                        ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert-public --from-file=tls.crt;
+                                        if (${KUBECTL} get secret --namespace=${NAMESPACE} deployment-cert >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                echo "✓   secret ${NAMESPACE}/deployment-cert";
+                                        else
+                                                if (${KUBECTL} create secret --namespace=${NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                        echo "🚀  secret ${NAMESPACE}/deployment-cert";
+                                                else
+                                                        echo -e "\e[31m❌  secret ${NAMESPACE}/deployment-cert\e[0m" && exit 1;
+                                                fi
+                                        fi;
+                                        cp server.crt tls.crt >> ${KUBE_INSTALL_LOG} 2>&1
+                                        if (${KUBECTL} get secret --namespace=${NAMESPACE} deployment-cert >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                echo "✓   secret ${NAMESPACE}/deployment-cert-public";
+                                        else
+                                                if (${KUBECTL} create secret --namespace=${NAMESPACE} generic deployment-cert-public --from-file=tls.crt >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                        echo "🚀  secret ${NAMESPACE}/deployment-cert-public";
+                                                else
+                                                        echo -e "\e[31m❌  secret ${NAMESPACE}/deployment-cert-public\e[0m" && exit 1;
+                                                fi
+                                        fi;
 				fi;
                         fi;
                 fi;
                 # api secret / password is dummy for search API, only used in admin api
-                if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
-                        export HTTP_PASSWD=$(openssl rand -hex 32)
-                        echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
-                fi
-                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
-                        echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwd";
-                else
-                        if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
-                                echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
+                if [ "${APP_GROUP}" != "judilibre-prive" ]; then
+                        if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
+                                export HTTP_PASSWD=$(openssl rand -hex 32)
+                                echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
+                        fi
+                        if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwd";
                         else
-                                echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
+                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                        echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
+                                else
+                                        echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
+                                fi;
                         fi;
                 fi;
         fi;
