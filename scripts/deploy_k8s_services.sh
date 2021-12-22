@@ -357,34 +357,6 @@ fi;
 : ${ELASTIC_SEARCH_PASSWORD:=changeme}
 export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | tr -d ':\n' | sed 's/\$2y/\$2a/')
 
-#encode S3 secrets into base64 (for yaml config of secrets)
-export SCW_LOG_ACCESS_KEY_B64=$(echo -n ${SCW_LOG_ACCESS_KEY} | openssl base64)
-export SCW_LOG_SECRET_KEY_B64=$(echo -n ${SCW_LOG_SECRET_KEY} | openssl base64)
-if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
-        export SCW_DATA_ACCESS_KEY_B64=$(echo -n ${SCW_DATA_ACCESS_KEY} | openssl base64);
-        export SCW_DATA_SECRET_KEY_B64=$(echo -n ${SCW_DATA_SECRET_KEY} | openssl base64);
-else
-        # dummy keys for local deployment
-        export SCW_DATA_ACCESS_KEY_B64=Y2hhbmdlbWU=;
-        export SCW_DATA_SECRET_KEY_B64=Y2hhbmdlbWU=;
-fi;
-
-#encode PISTE API Keys
-if [ ! -z "${PISTE_JUDILIBRE_KEY}" ]; then
-        export PISTE_JUDILIBRE_KEY_B64=$(echo -n ${PISTE_JUDILIBRE_KEY} | openssl base64);
-        export PISTE_JUDILIBRE_KEY_PROD_B64=$(echo -n ${PISTE_JUDILIBRE_KEY_PROD} | openssl base64);
-        export PISTE_METRICS_KEY_B64=$(echo -n ${PISTE_METRICS_KEY} | openssl base64);
-        export PISTE_METRICS_SECRET_B64=$(echo -n ${PISTE_METRICS_SECRET} | openssl base64);
-        export PISTE_METRICS_KEY_PROD_B64=$(echo -n ${PISTE_METRICS_KEY_PROD} | openssl base64);
-        export PISTE_METRICS_SECRET_PROD_B64=$(echo -n ${PISTE_METRICS_SECRET_PROD} | openssl base64);
-else
-        export PISTE_JUDILIBRE_KEY_B64=Y2hhbmdlbWU=;
-        export PISTE_JUDILIBRE_KEY_PROD_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_KEY_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_SECRET_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_KEY_PROD_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_SECRET_PROD_B64=Y2hhbmdlbWU=;
-fi;
 
 if [ "${APP_GROUP}" == "monitor" ];then
         export APP_ENV_SPEC=$(cat <<-APP_ENV_SPEC

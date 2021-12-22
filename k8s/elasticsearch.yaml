@@ -4,9 +4,9 @@ metadata:
   name: s3-data-keys
   namespace: ${KUBE_NAMESPACE}
 type: Opaque
-data:
-  AWS_ACCESS_KEY_ID: ${SCW_DATA_ACCESS_KEY_B64}
-  AWS_SECRET_ACCESS_KEY: ${SCW_DATA_SECRET_KEY_B64}
+stringData:
+  AWS_ACCESS_KEY_ID: "${SCW_DATA_ACCESS_KEY}"
+  AWS_SECRET_ACCESS_KEY: "${SCW_DATA_SECRET_KEY}"
 ---
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch

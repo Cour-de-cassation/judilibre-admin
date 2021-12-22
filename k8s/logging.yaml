@@ -168,9 +168,9 @@ metadata:
   name: s3-log-keys
   namespace: logging
 type: Opaque
-data:
-  AWS_ACCESS_KEY_ID: ${SCW_LOG_ACCESS_KEY_B64}
-  AWS_SECRET_ACCESS_KEY: ${SCW_LOG_SECRET_KEY_B64}
+stringData:
+  AWS_ACCESS_KEY_ID: "${SCW_LOG_ACCESS_KEY}"
+  AWS_SECRET_ACCESS_KEY: "${SCW_LOG_SECRET_KEY}"
 ---
 apiVersion: apps/v1
 kind: DaemonSet
