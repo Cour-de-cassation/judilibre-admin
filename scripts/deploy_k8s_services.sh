@@ -357,34 +357,6 @@ fi;
 : ${ELASTIC_SEARCH_PASSWORD:=changeme}
 export ELASTIC_SEARCH_HASH=$(htpasswd -bnBC 10 "" ${ELASTIC_SEARCH_PASSWORD} | tr -d ':\n' | sed 's/\$2y/\$2a/')
 
-#encode S3 secrets into base64 (for yaml config of secrets)
-export SCW_LOG_ACCESS_KEY_B64=$(echo -n ${SCW_LOG_ACCESS_KEY} | openssl base64)
-export SCW_LOG_SECRET_KEY_B64=$(echo -n ${SCW_LOG_SECRET_KEY} | openssl base64)
-if [ ! -z "${SCW_DATA_SECRET_KEY}" ];then
-        export SCW_DATA_ACCESS_KEY_B64=$(echo -n ${SCW_DATA_ACCESS_KEY} | openssl base64);
-        export SCW_DATA_SECRET_KEY_B64=$(echo -n ${SCW_DATA_SECRET_KEY} | openssl base64);
-else
-        # dummy keys for local deployment
-        export SCW_DATA_ACCESS_KEY_B64=Y2hhbmdlbWU=;
-        export SCW_DATA_SECRET_KEY_B64=Y2hhbmdlbWU=;
-fi;
-
-#encode PISTE API Keys
-if [ ! -z "${PISTE_JUDILIBRE_KEY}" ]; then
-        export PISTE_JUDILIBRE_KEY_B64=$(echo -n ${PISTE_JUDILIBRE_KEY} | openssl base64);
-        export PISTE_JUDILIBRE_KEY_PROD_B64=$(echo -n ${PISTE_JUDILIBRE_KEY_PROD} | openssl base64);
-        export PISTE_METRICS_KEY_B64=$(echo -n ${PISTE_METRICS_KEY} | openssl base64);
-        export PISTE_METRICS_SECRET_B64=$(echo -n ${PISTE_METRICS_SECRET} | openssl base64);
-        export PISTE_METRICS_KEY_PROD_B64=$(echo -n ${PISTE_METRICS_KEY_PROD} | openssl base64);
-        export PISTE_METRICS_SECRET_PROD_B64=$(echo -n ${PISTE_METRICS_SECRET_PROD} | openssl base64);
-else
-        export PISTE_JUDILIBRE_KEY_B64=Y2hhbmdlbWU=;
-        export PISTE_JUDILIBRE_KEY_PROD_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_KEY_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_SECRET_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_KEY_PROD_B64=Y2hhbmdlbWU=;
-        export PISTE_METRICS_SECRET_PROD_B64=Y2hhbmdlbWU=;
-fi;
 
 if [ "${APP_GROUP}" == "monitor" ];then
         export APP_ENV_SPEC=$(cat <<-APP_ENV_SPEC
@@ -413,6 +385,9 @@ for resource in ${KUBE_SERVICES}; do
                 RESOURCENAME=${APP_GROUP};
                 RESOURCETYPE=Elasticsearch;
         fi;
+        if [ -f "scripts/pre-${resource}.sh" ];then
+                ./script/pre-${resource}.sh
+        fi
         if [ "${resource}" == "deployment" ]; then
                 # elastic secrets
                 if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-es-path-with-auth >> ${KUBE_INSTALL_LOG} 2>&1); then
@@ -431,24 +406,44 @@ for resource in ${KUBE_SERVICES}; do
                                         echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-es-path-with-auth !\e[0m" && exit 1;
                                 fi;
                         else # judilibre-prive
-                                ./scripts/generate-certificate.sh;
-                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key;
-                                cp server.crt tls.crt
-                                ${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic deployment-cert-public --from-file=tls.crt;
+				if [[ "${APP_ID}" == "judilibre-"* ]]; then
+                                        ./scripts/generate-certificate.sh;
+                                        if (${KUBECTL} get secret --namespace=${NAMESPACE} deployment-cert >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                echo "✓   secret ${NAMESPACE}/deployment-cert";
+                                        else
+                                                if (${KUBECTL} create secret --namespace=${NAMESPACE} generic deployment-cert --from-file=server.crt --from-file=server.key >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                        echo "🚀  secret ${NAMESPACE}/deployment-cert";
+                                                else
+                                                        echo -e "\e[31m❌  secret ${NAMESPACE}/deployment-cert\e[0m" && exit 1;
+                                                fi
+                                        fi;
+                                        cp server.crt tls.crt >> ${KUBE_INSTALL_LOG} 2>&1
+                                        if (${KUBECTL} get secret --namespace=${NAMESPACE} deployment-cert >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                echo "✓   secret ${NAMESPACE}/deployment-cert-public";
+                                        else
+                                                if (${KUBECTL} create secret --namespace=${NAMESPACE} generic deployment-cert-public --from-file=tls.crt >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                                        echo "🚀  secret ${NAMESPACE}/deployment-cert-public";
+                                                else
+                                                        echo -e "\e[31m❌  secret ${NAMESPACE}/deployment-cert-public\e[0m" && exit 1;
+                                                fi
+                                        fi;
+				fi;
                         fi;
                 fi;
                 # api secret / password is dummy for search API, only used in admin api
-                if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
-                        export HTTP_PASSWD=$(openssl rand -hex 32)
-                        echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
-                fi
-                if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
-                        echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwpasswdord";
-                else
-                        if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
-                                echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
+                if [ "${APP_GROUP}" != "judilibre-prive" ]; then
+                        if [ -z "${HTTP_PASSWD}" -a "${APP_GROUP}" == "judilibre" ];then
+                                export HTTP_PASSWD=$(openssl rand -hex 32)
+                                echo "🔒️   generated default http-passwd for ${APP_ID} ${HTTP_PASSWD}";
+                        fi
+                        if (${KUBECTL} get secret --namespace=${KUBE_NAMESPACE} ${APP_ID}-http-passwd >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                echo "✓   secret ${NAMESPACE}/${APP_ID}-http-passwd";
                         else
-                                echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
+                                if (${KUBECTL} create secret --namespace=${KUBE_NAMESPACE} generic ${APP_ID}-http-passwd --from-literal="http-passwd=${HTTP_PASSWD}" >> ${KUBE_INSTALL_LOG} 2>&1); then
+                                        echo "🚀  secret ${NAMESPACE}/${APP_ID}-http-passwd";
+                                else
+                                        echo -e "\e[31m❌  secret ${NAMESPACE}/${APP_ID}-http-passwd !\e[0m" && exit 1;
+                                fi;
                         fi;
                 fi;
         fi;
@@ -529,6 +524,9 @@ for resource in ${KUBE_SERVICES}; do
                         fi;
                 fi;
         fi;
+        if [ -f "scripts/post-${resource}.sh" ];then
+                ./script/post-${resource}.sh
+        fi
 done;
 
 export START_TIMEOUT=$timeout
