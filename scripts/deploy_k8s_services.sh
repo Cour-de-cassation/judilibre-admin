@@ -383,10 +383,14 @@ fi
 
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
-        if [ -f k8s/${resource}-${KUBE_TYPE}.yaml ]; then
+        if [ -f "k8s/${resource}-${KUBE_TYPE}.yaml" ]; then
                 RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
         else
-                RESOURCEFILE=k8s/${resource}.yaml;
+                if [ -f "k8s/${resource}-${APP_ID}.yaml" ]; then
+                        RESOURCEFILE=k8s/${resource}-${APP_ID}.yaml;
+                else
+                        RESOURCEFILE=k8s/${resource}.yaml;
+                fi;
         fi;
         NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;' | head -1);
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
