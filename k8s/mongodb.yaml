@@ -17,7 +17,7 @@ spec:
       passwordSecretRef:
         name: mongodb-user-password
       roles:
-        - name: userAdminAnyDatabase
+        - name: dbOwner
           db: admin
       scramCredentialsSecretName: user-scram
   additionalMongodConfig:
