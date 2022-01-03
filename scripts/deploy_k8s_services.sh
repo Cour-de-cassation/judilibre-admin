@@ -137,6 +137,17 @@ if [ "${APP_GROUP}" == "judilibre-prive" ];then
         if [ -z "${MONGODB_PASSWORD}" ]; then
                 export MONGODB_PASSWORD=$(openssl rand -hex 32)
         fi
+        if [ "${APP_ID}" == "label-backend" ]; then
+                if [ -z "${MONGODB_NAME}" ]; then
+                        export MONGODB_NAME=admin
+                fi
+                if [ -z "${MONGODB_HOST}" ]; then
+                        export MONGODB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local
+                fi
+                if [ -z "${MONGODB_PORT}" ]; then
+                        export MONGODB_PORT=27017
+                fi
+        fi
         if [ "${APP_ID}" == "judilibre-index" ]; then
                 if [ -z "${INTERNAL_DB_URI}" ]; then
                         export INTERNAL_DB_URI=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
