@@ -24,10 +24,18 @@ if [ -z "${DOCKER_TARGET}" ]; then
         export DOCKER_TARGET=production
 fi
 
+if [ -z "${DOCKER_FILE}" ]; then
+        if [ -f "Dockerfile.${APP_ID}" ]; then
+                export DOCKER_FILE="$(pwd)/Dockerfile.${APP_ID}"
+        else
+                export DOCKER_FILE="$(pwd)/Dockerfile"
+        fi;
+fi
+
 if ! (./scripts/docker-check.sh); then
         (
                 (
-                        if (docker build --no-cache --build-arg NPM_LATEST=${NPM_LATEST} --target ${DOCKER_TARGET} -t ${DOCKER_IMAGE} .) ; then
+                        if (docker build --no-cache --build-arg NPM_LATEST="${NPM_LATEST}" -f ${DOCKER_FILE} --target ${DOCKER_TARGET} -t ${DOCKER_IMAGE} .) ; then
                                 echo -n ""
                         fi;
                 ) | stdbuf -o0 grep Step | stdbuf -o0 sed 's/ :.*//' | stdbuf -o0 awk '{ printf "\033[2K\r🐋  Docker build version '${VERSION}' " $0 }';
