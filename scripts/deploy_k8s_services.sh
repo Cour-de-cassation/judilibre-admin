@@ -213,22 +213,6 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
-                        if (
-                              (
-                                ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
-                              ) > ${KUBE_INSTALL_LOG} 2>&1
-                           ); then
-                                echo "🚀  traefik crd";
-                        else
-                                echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
-                        fi;
-                        if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
-                                docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
-                                (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
-                                echo -e "⤵️   Docker image imported to k3s";
-                                rm /tmp/img.tar;
-                        fi;
                 fi;
                 if [ "${K8S}" = "minikube" ]; then
                         minikube start;
@@ -239,6 +223,24 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         fi;
                 fi;
         fi;
+        if [ "${KUBE_TYPE}" == "k3s" ]; then
+                if (
+                        (
+                        ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
+                        ) > ${KUBE_INSTALL_LOG} 2>&1
+                        ); then
+                        echo "🚀  traefik crd";
+                else
+                        echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
+                fi;
+                if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
+                        ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
+                        docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
+                        (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
+                        echo -e "⤵️   Docker image imported to k3s";
+                        rm /tmp/img.tar;
+                fi;
+        fi
 else
         if [ "${KUBE_TYPE}" == "k3s" ];then
                 if [[ ${APP_ID} == "judilibre-"* ]]; then
