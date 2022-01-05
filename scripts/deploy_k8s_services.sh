@@ -384,14 +384,16 @@ fi
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
         if [ -f "k8s/${resource}-${KUBE_TYPE}.yaml" ]; then
-                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
+                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml
+        elif [ -f "k8s/${resource}-${KUBE_TYPE}-${APP_ID}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}-${APP_ID}.yaml
+        elif [ -f "k8s/${resource}-${APP_ID}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}-${APP_ID}.yaml;
+        elif [ -f "k8s/${resource}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}.yaml;
         else
-                if [ -f "k8s/${resource}-${APP_ID}.yaml" ]; then
-                        RESOURCEFILE=k8s/${resource}-${APP_ID}.yaml;
-                else
-                        RESOURCEFILE=k8s/${resource}.yaml;
-                fi;
-        fi;
+                echo -e "\e[31m❌  ${resource} has no config file like k8s/${resource}(-${KUBE_TYPE})?(-${APP-ID})?\e[0m" && exit 1;
+        fi
         NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;' | head -1);
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//' | head -1);
