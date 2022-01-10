@@ -150,19 +150,19 @@ if [ "${APP_GROUP}" == "judilibre-prive" ];then
         fi
         if [ "${APP_ID}" == "judifiltre-backend" ]; then
                 if [ -z "${JURICA_DBNAME}" ]; then
-                        export JURICA_DBNAME=admin
+                        export JURICA_DBNAME=jurica
                 fi
                 if [ -z "${JURICA_URL}" ]; then
                         export JURICA_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
                 fi
                 if [ -z "${JURINET_DBNAME}" ]; then
-                        export JURINET_DBNAME=admin
+                        export JURINET_DBNAME=jurinet
                 fi
                 if [ -z "${JURINET_URL}" ]; then
                         export JURINET_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
                 fi
                 if [ -z "${JUDIFILTRE_DBNAME}" ]; then
-                        export JUDIFILTRE_DBNAME=admin
+                        export JUDIFILTRE_DBNAME=judifiltredb
                 fi
                 if [ -z "${JUDIFILTRE_URL}" ]; then
                         export JUDIFILTRE_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
