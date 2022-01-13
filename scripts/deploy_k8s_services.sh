@@ -125,7 +125,7 @@ fi
 if [ -z "${KUBE_SERVICES}" ];then
         export KUBE_SERVICES="service deployment"
         if [ "${APP_GROUP}" == "judilibre-prive" ]; then
-		if [ "${KUBE_ZONE}" == "local" ]; then
+		if [ "${KUBE_ZONE}" == "local" -o "${APP_ID}" == "judifiltre-backend" ]; then
                 	export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
 		fi;
         else
@@ -146,6 +146,26 @@ if [ "${APP_GROUP}" == "judilibre-prive" ];then
                 fi
                 if [ -z "${MONGODB_PORT}" ]; then
                         export MONGODB_PORT=27017
+                fi
+        fi
+        if [ "${APP_ID}" == "judifiltre-backend" ]; then
+                if [ -z "${JURICA_DBNAME}" ]; then
+                        export JURICA_DBNAME=jurica
+                fi
+                if [ -z "${JURICA_URL}" ]; then
+                        export JURICA_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+                fi
+                if [ -z "${JURINET_DBNAME}" ]; then
+                        export JURINET_DBNAME=jurinet
+                fi
+                if [ -z "${JURINET_URL}" ]; then
+                        export JURINET_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
+                fi
+                if [ -z "${JUDIFILTRE_DBNAME}" ]; then
+                        export JUDIFILTRE_DBNAME=judifiltredb
+                fi
+                if [ -z "${JUDIFILTRE_URL}" ]; then
+                        export JUDIFILTRE_URL=mongodb://user:${MONGODB_PASSWORD}@mongodb-0.mongodb-svc.${KUBE_NAMESPACE}.svc.cluster.local:27017
                 fi
         fi
         if [ "${APP_ID}" == "judilibre-index" ]; then
@@ -213,22 +233,6 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         export KUBECONFIG=${HOME}/.kube/config-local-k3s.yaml;
                         sudo cp /etc/rancher/k3s/k3s.yaml ${KUBECONFIG};
                         sudo chown ${USER} ${KUBECONFIG};
-                        if (
-                              (
-                                ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
-                              ) > ${KUBE_INSTALL_LOG} 2>&1
-                           ); then
-                                echo "🚀  traefik crd";
-                        else
-                                echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
-                        fi;
-                        if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
-                                ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
-                                docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
-                                (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
-                                echo -e "⤵️   Docker image imported to k3s";
-                                rm /tmp/img.tar;
-                        fi;
                 fi;
                 if [ "${K8S}" = "minikube" ]; then
                         minikube start;
@@ -239,6 +243,24 @@ if [ "${KUBE_ZONE}" == "local" ]; then
                         fi;
                 fi;
         fi;
+        if [ "${KUBE_TYPE}" == "k3s" ]; then
+                if (
+                        (
+                        ${KUBECTL} apply -f https://raw.githubusercontent.com/sleighzy/k3s-traefik-v2-kubernetes-crd/master/001-crd.yaml
+                        ) > ${KUBE_INSTALL_LOG} 2>&1
+                        ); then
+                        echo "🚀  traefik crd";
+                else
+                        echo -e "\e[31m❌  traefik crd\e[0m" && exit 1;
+                fi;
+                if ! (sudo k3s ctr images check | grep -q ${DOCKER_IMAGE}); then
+                        ./scripts/docker-check.sh || ./scripts/docker-build.sh || exit 1;
+                        docker save ${DOCKER_IMAGE} --output /tmp/img.tar;
+                        (sudo k3s ctr image import /tmp/img.tar >> ${KUBE_INSTALL_LOG} 2>&1);
+                        echo -e "⤵️   Docker image imported to k3s";
+                        rm /tmp/img.tar;
+                fi;
+        fi
 else
         if [ "${KUBE_TYPE}" == "k3s" ];then
                 if [[ ${APP_ID} == "judilibre-"* ]]; then
@@ -384,14 +406,16 @@ fi
 timeout=${START_TIMEOUT};
 for resource in ${KUBE_SERVICES}; do
         if [ -f "k8s/${resource}-${KUBE_TYPE}.yaml" ]; then
-                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml;
+                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}.yaml
+        elif [ -f "k8s/${resource}-${KUBE_TYPE}-${APP_ID}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}-${KUBE_TYPE}-${APP_ID}.yaml
+        elif [ -f "k8s/${resource}-${APP_ID}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}-${APP_ID}.yaml;
+        elif [ -f "k8s/${resource}.yaml" ]; then
+                RESOURCEFILE=k8s/${resource}.yaml;
         else
-                if [ -f "k8s/${resource}-${APP_ID}.yaml" ]; then
-                        RESOURCEFILE=k8s/${resource}-${APP_ID}.yaml;
-                else
-                        RESOURCEFILE=k8s/${resource}.yaml;
-                fi;
-        fi;
+                echo -e "\e[31m❌  ${resource} has no config file like k8s/${resource}(-${KUBE_TYPE})?(-${APP-ID})?\e[0m" && exit 1;
+        fi
         NAMESPACE=$(envsubst < ${RESOURCEFILE} | grep -e '^  namespace:' | sed 's/.*:\s*//;s/\s*//;' | head -1);
         RESOURCENAME=$(envsubst < ${RESOURCEFILE} | grep -e '^  name:' | sed 's/.*:\s*//;s/\s*//' | head -1);
         RESOURCETYPE=$(envsubst < ${RESOURCEFILE} | grep -e '^kind:' | sed 's/.*:\s*//;s/\s*//' | head -1);
