@@ -425,7 +425,7 @@ for resource in ${KUBE_SERVICES}; do
                 RESOURCETYPE=Elasticsearch;
         fi;
         if [ -f "scripts/pre-${resource}.sh" ];then
-                ./script/pre-${resource}.sh
+                ./scripts/pre-${resource}.sh
         fi
         if [ "${resource}" == "deployment" ]; then
                 # elastic secrets
@@ -564,7 +564,7 @@ for resource in ${KUBE_SERVICES}; do
                 fi;
         fi;
         if [ -f "scripts/post-${resource}.sh" ];then
-                ./script/post-${resource}.sh
+                ./scripts/post-${resource}.sh
         fi
 done;
 
