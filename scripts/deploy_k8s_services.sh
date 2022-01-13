@@ -125,7 +125,7 @@ fi
 if [ -z "${KUBE_SERVICES}" ];then
         export KUBE_SERVICES="service deployment"
         if [ "${APP_GROUP}" == "judilibre-prive" ]; then
-		if [ "${KUBE_ZONE}" == "local" ]; then
+		if [ "${KUBE_ZONE}" == "local" -o "${APP_ID}" == "judifiltre-backend" ]; then
                 	export KUBE_SERVICES="mongodb ${KUBE_SERVICES}";
 		fi;
         else
