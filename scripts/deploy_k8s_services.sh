@@ -49,7 +49,7 @@ if [ ! -z "${APP_DEBUG}" ]; then
 fi;
 
 if [ -z "${ELASTIC_VERSION}" ];then
-        export ELASTIC_VERSION=7.16.2;
+        export ELASTIC_VERSION=7.16.3;
 fi;
 
 if [ -z "${KUBECTL}" ]; then
