@@ -30,8 +30,3 @@ if [ ! -d "k8s/" ];then
     ln -s ${KUBE_SRC} ./k8s;
 fi;
 
-
-# elastic configs
-if [ ! -d "elastic/" ]; then
-    ln -s ${ELASTIC_SRC} ./elastic;
-fi;

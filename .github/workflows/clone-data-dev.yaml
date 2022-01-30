@@ -16,6 +16,10 @@ jobs:
       SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v1
+      - name: init deps
+        run: ./scripts/init_deps.sh
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
       - name: kube prerequisites
         run: |
           mkdir -p ${HOME}/.kube

@@ -15,16 +15,20 @@ jobs:
       DNS_ROOT: judilibre.fr
     steps:
       - uses: actions/checkout@v1
-      - name: set random DNS
-        run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
-        id: extract_dns
-      - name: get version
-        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
-        id: extract_version
       - name: extract branch name
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
         id: extract_branch
+      - name: init deps
+        run: ./scripts/init_deps.sh
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+      - name: get version
+        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
+        id: extract_version
+      - name: set random DNS
+        run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
+        id: extract_dns
       - name: ☸️ create_environment
         id: create_environment
         run: |
