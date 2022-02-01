@@ -4,8 +4,8 @@
 
 : ${DATA_DIR:=$(pwd)/judilibre-sder/src/data/export}
 if [ ! -d ${DATA_DIR} ];then
-    if ! (git clone https://oauth2:${GIT_TOKEN}@github.com/Cour-de-cassation/judilibre-sder > /dev/null 2>&1); then
-        echo -e "e[31m❌ ${IMPORT_MSG} batch $file failed, couldn't clone git repository \e[0m" && exit 1;
+    if ! (git clone https://oauth2:${GIT_TOKEN}@github.com/Cour-de-cassation/judilibre-sder 2>&1); then
+        echo -e "e[31m❌ ${IMPORT_MSG} test failed, couldn't clone git repository \e[0m" && exit 1;
     fi;
 fi;
 
