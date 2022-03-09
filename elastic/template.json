@@ -210,6 +210,9 @@
       "jurisdiction": {
         "type": "keyword"
       },
+      "location": {
+        "type": "keyword"
+      },
       "chamber": {
         "type": "keyword"
       },

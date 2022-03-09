@@ -108,6 +108,12 @@ api.post(
       errorMessage: `Decision has no display text.`,
       optional: false,
     },
+    'decisions.*.location': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.location must be a string.`,
+      optional: true,
+    },
     'decisions.*.ecli': {
       in: 'body',
       isString: true,
@@ -280,6 +286,9 @@ async function indexDecision(decision) {
   }
   if (decision.formation) {
     document.formation = decision.formation;
+  }
+  if (decision.location) {
+    document.location = decision.location;
   }
   if (decision.nac) {
     document.nac = decision.nac;
