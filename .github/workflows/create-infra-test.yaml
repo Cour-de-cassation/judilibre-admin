@@ -33,8 +33,8 @@ jobs:
         id: create_environment
         run: |
           mkdir -p ${HOME}/.kube
-          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
-          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
+          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/sbx/rpa/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
+          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.sbx\.judilibre\.io/.sbx-${DNS_RAND}.${DNS_ROOT}/g;s/sbx/rpa/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
           export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
           ./scripts/create_environment.sh || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
         env:
