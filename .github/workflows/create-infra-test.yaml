@@ -12,7 +12,7 @@ jobs:
     env:
       ENV_SCW_SBX_PAR1: ${{ secrets.ENV_SCW_SBX_PAR1 }}
       ENV_SCW_SBX_PAR2: ${{ secrets.ENV_SCW_SBX_PAR2 }}
-      DNS_ROOT: judilibre.fr
+      DNS_ROOT: judilibre.io
     steps:
       - uses: actions/checkout@v1
       - name: extract branch name
