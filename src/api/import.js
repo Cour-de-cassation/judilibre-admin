@@ -176,8 +176,8 @@ api.post(
     },
     'decisions.*.timeline': {
       in: 'body',
-      isObject: true,
-      errorMessage: `Decision.timeline must be an object.`,
+      isArray: true,
+      errorMessage: `Decision.timeline must be an array.`,
       optional: true,
     },
     'decisions.*.solution_alt': {
