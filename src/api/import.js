@@ -390,14 +390,14 @@ async function indexDecision(decision) {
     document.themesFilter = decision.themes;
   }
   if (decision.lowInterest) {
-    decision.lowInterest = decision.lowInterest === true;
+    document.lowInterest = decision.lowInterest === true;
   } else {
-    decision.lowInterest = false;
+    document.lowInterest = false;
   }
   if (decision.partial) {
-    decision.partial = decision.partial === true;
+    document.partial = decision.partial === true;
   } else {
-    decision.partial = false;
+    document.partial = false;
   }
   if (decision.zones) {
     document.zones = decision.zones;
