@@ -25,7 +25,7 @@ api.post(
       in: 'body',
       isString: true,
       errorMessage: `Decision has no chamber.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.decision_date': {
       in: 'body',
@@ -290,7 +290,9 @@ async function indexDecision(decision) {
   document.source = decision.source;
   document.text = decision.text;
   document.displayText = decision.displayText;
-  document.chamber = decision.chamber;
+  if (decision.chamber) {
+    document.chamber = decision.chamber;
+  }
   document.decision_date = decision.decision_date;
   document.jurisdiction = decision.jurisdiction;
   document.number = decision.number.map((item) => {
