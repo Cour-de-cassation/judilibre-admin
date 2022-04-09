@@ -297,7 +297,9 @@ async function indexDecision(decision) {
     return item.replace(/[^\w\d]/gm, '').trim();
   });
   document.numberFull = decision.number;
-  document.publication = decision.publication;
+  if (decision.publication) {
+    document.publication = decision.publication;
+  }
   document.solution = decision.solution;
   document.type = decision.type;
   if (decision.ecli) {
