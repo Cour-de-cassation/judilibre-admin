@@ -25,7 +25,7 @@ api.post(
       in: 'body',
       isString: true,
       errorMessage: `Decision has no chamber.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.decision_date': {
       in: 'body',
@@ -108,6 +108,12 @@ api.post(
       errorMessage: `Decision has no display text.`,
       optional: false,
     },
+    'decisions.*.location': {
+      in: 'body',
+      isString: true,
+      errorMessage: `Decision.location must be a string.`,
+      optional: true,
+    },
     'decisions.*.ecli': {
       in: 'body',
       isString: true,
@@ -162,6 +168,18 @@ api.post(
       errorMessage: `Decision.contested must be an object.`,
       optional: true,
     },
+    'decisions.*.forward': {
+      in: 'body',
+      isObject: true,
+      errorMessage: `Decision.forward must be an object.`,
+      optional: true,
+    },
+    'decisions.*.timeline': {
+      in: 'body',
+      isArray: true,
+      errorMessage: `Decision.timeline must be an array.`,
+      optional: true,
+    },
     'decisions.*.solution_alt': {
       in: 'body',
       isString: true,
@@ -197,6 +215,13 @@ api.post(
       isBoolean: true,
       toBoolean: true,
       errorMessage: `Decision.lowInterest must be a boolean.`,
+      optional: true,
+    },
+    'decisions.*.partial': {
+      in: 'body',
+      isBoolean: true,
+      toBoolean: true,
+      errorMessage: `Decision.partial must be a boolean.`,
       optional: true,
     },
   }),
@@ -265,14 +290,18 @@ async function indexDecision(decision) {
   document.source = decision.source;
   document.text = decision.text;
   document.displayText = decision.displayText;
-  document.chamber = decision.chamber;
+  if (decision.chamber) {
+    document.chamber = decision.chamber;
+  }
   document.decision_date = decision.decision_date;
   document.jurisdiction = decision.jurisdiction;
   document.number = decision.number.map((item) => {
     return item.replace(/[^\w\d]/gm, '').trim();
   });
   document.numberFull = decision.number;
-  document.publication = decision.publication;
+  if (decision.publication) {
+    document.publication = decision.publication;
+  }
   document.solution = decision.solution;
   document.type = decision.type;
   if (decision.ecli) {
@@ -280,6 +309,9 @@ async function indexDecision(decision) {
   }
   if (decision.formation) {
     document.formation = decision.formation;
+  }
+  if (decision.location) {
+    document.location = decision.location;
   }
   if (decision.nac) {
     document.nac = decision.nac;
@@ -300,6 +332,12 @@ async function indexDecision(decision) {
   }
   if (decision.contested) {
     document.contested = decision.contested;
+  }
+  if (decision.forward) {
+    document.forward = decision.forward;
+  }
+  if (decision.timeline) {
+    document.timeline = decision.timeline;
   }
   if (decision.solution_alt) {
     document.solution_alt = decision.solution_alt;
@@ -356,9 +394,14 @@ async function indexDecision(decision) {
     document.themesFilter = decision.themes;
   }
   if (decision.lowInterest) {
-    decision.lowInterest = decision.lowInterest === true;
+    document.lowInterest = decision.lowInterest === true;
   } else {
-    decision.lowInterest = false;
+    document.lowInterest = false;
+  }
+  if (decision.partial) {
+    document.partial = decision.partial === true;
+  } else {
+    document.partial = false;
   }
   if (decision.zones) {
     document.zones = decision.zones;

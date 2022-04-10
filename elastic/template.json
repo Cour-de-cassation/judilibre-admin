@@ -210,6 +210,9 @@
       "jurisdiction": {
         "type": "keyword"
       },
+      "location": {
+        "type": "keyword"
+      },
       "chamber": {
         "type": "keyword"
       },
@@ -357,6 +360,10 @@
         "type": "flattened",
         "index": false
       },
+      "forward": {
+        "type": "flattened",
+        "index": false
+      },
       "rapprochements": {
         "type": "flattened",
         "index": false
@@ -374,6 +381,14 @@
       },
       "lowInterest": {
         "type": "boolean"
+      },
+      "partial": {
+        "type": "boolean",
+        "index": false
+      },
+      "timeline": {
+        "type": "flattened",
+        "index": false
       },
       "displayText": {
         "type": "text",
