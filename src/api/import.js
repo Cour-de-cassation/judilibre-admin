@@ -224,6 +224,24 @@ api.post(
       errorMessage: `Decision.partial must be a boolean.`,
       optional: true,
     },
+    'decisions.*.legacy': {
+      in: 'body',
+      isObject: true,
+      errorMessage: `Decision.legacy must be an object.`,
+      optional: true,
+    },
+    'decisions.*.decision_datetime': {
+      in: 'body',
+      isISO8601: true,
+      errorMessage: `Decision has no date.`,
+      optional: false,
+    },
+    'decisions.*.update_datetime': {
+      in: 'body',
+      isISO8601: true,
+      errorMessage: `Decision.update_date must be a ISO-8601 date (e.g. 2021-05-13).`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
@@ -240,9 +258,10 @@ api.post(
       }
       return res.status(200).json(result);
     } catch (e) {
-      return res
-        .status(500)
-        .json({ route: `${req.method} ${req.path}`, errors: [{ msg: 'Internal Server Error', error: e.message }] });
+      return res.status(500).json({
+        route: `${req.method} ${req.path}`,
+        errors: [{ msg: 'Internal Server Error', error: JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null) }],
+      });
     }
   },
 );
@@ -268,7 +287,7 @@ async function postImport(query) {
       } catch (e) {
         response.not_indexed.push({
           id: decision.id,
-          reason: e.message,
+          reason: JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null),
         });
         console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${decision.id}`);
         console.error(e);
@@ -294,6 +313,7 @@ async function indexDecision(decision) {
     document.chamber = decision.chamber;
   }
   document.decision_date = decision.decision_date;
+  document.decision_datetime = decision.decision_datetime;
   document.jurisdiction = decision.jurisdiction;
   document.number = decision.number.map((item) => {
     return item.replace(/[^\w\d]/gm, '').trim();
@@ -321,6 +341,9 @@ async function indexDecision(decision) {
   }
   if (decision.update_date) {
     document.update_date = decision.update_date;
+  }
+  if (decision.update_datetime) {
+    document.update_datetime = decision.update_datetime;
   }
   if (decision.visa) {
     document.visa = decision.visa;
@@ -465,6 +488,9 @@ async function indexDecision(decision) {
         document.zoneAnnexes.push(decision.text.substring(start, end).trim());
       }
     }
+  }
+  if (decision.legacy) {
+    document.legacy = decision.legacy;
   }
 
   const response = await Elastic.client.index({

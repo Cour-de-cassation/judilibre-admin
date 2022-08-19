@@ -38,9 +38,11 @@ api.get(
       return res.status(200).json(result);
     } catch (e) {
       console.log(e.meta.body);
-      return res
-        .status(500)
-        .json({ route: `${req.method} ${req.path}`, errors: [{ msg: 'Internal Server Error', error: e.message }] });
+      console.error(e);
+      return res.status(500).json({
+        route: `${req.method} ${req.path}`,
+        errors: [{ msg: 'Internal Server Error', error: JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null) }],
+      });
     }
   },
 );
@@ -59,6 +61,7 @@ async function getAdmin(query) {
         });
         response.result = deleteResult.body;
       } catch (e) {
+        console.error(e);
         response.result = e;
       }
       break;
@@ -72,6 +75,7 @@ async function getAdmin(query) {
         });
         response.result = refreshResult.body;
       } catch (e) {
+        console.error(e);
         response.result = e;
       }
       break;
@@ -87,6 +91,7 @@ async function getAdmin(query) {
           name: 't_judilibre',
         });
       } catch (e) {
+        console.error(e);
         error = e;
       }
       response.result = {
@@ -105,6 +110,7 @@ async function getAdmin(query) {
           name: '*',
         });
       } catch (e) {
+        console.error(e);
         allTemplatesError = e;
       }
       response.result = {
@@ -121,6 +127,7 @@ async function getAdmin(query) {
           response.result = 'indisponible';
         }
       } catch (e) {
+        console.error(e);
         response.result = 'indisponible';
       }
       break;
