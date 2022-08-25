@@ -1,8 +1,8 @@
 name: Restart elasticsearch cluster
 
 on:
-  push:
-    branches: [dev, master]
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
@@ -66,7 +66,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
   restart-elastic-scw-prod-par1:
     name: 🔃 Restart elastic cluster on dev
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 0 * * *'
     runs-on: ubuntu-latest
     env:
       ACME: acme
@@ -126,7 +126,7 @@ jobs:
   restart-elastic-scw-prod-par2:
     name: 🔃 Restart elastic cluster on dev
     needs: restart-elastic-scw-prod-par1
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 0 * * *'
     runs-on: ubuntu-latest
     env:
       ACME: acme
