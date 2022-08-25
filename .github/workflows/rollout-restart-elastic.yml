@@ -125,7 +125,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
   restart-elastic-scw-prod-par2:
     name: 🚀 Deploy, update on Scaleway (master on prod fr-par-2) ☸️
-    needs: restart-elastic-scw-prod-par2
+    needs: restart-elastic-scw-prod-par1
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     env:
