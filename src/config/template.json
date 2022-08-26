@@ -405,12 +405,10 @@
         "index": true
       },
       "decision_datetime": {
-        "type": "date",
-        "format": "yyyy-MM-dd HH:mm:ss"
+        "type": "date"
       },
       "update_datetime": {
-        "type": "date",
-        "format": "yyyy-MM-dd HH:mm:ss"
+        "type": "date"
       }
     }
   }
