@@ -313,7 +313,11 @@ async function indexDecision(decision) {
     document.chamber = decision.chamber;
   }
   document.decision_date = decision.decision_date;
-  document.decision_datetime = decision.decision_datetime;
+  if (decision.decision_datetime instanceof Date) {
+    document.decision_datetime = decision.decision_datetime.toISOString();
+  } else {
+    document.decision_datetime = decision.decision_datetime;
+  }
   document.jurisdiction = decision.jurisdiction;
   document.number = decision.number.map((item) => {
     return item.replace(/[^\w\d]/gm, '').trim();
@@ -343,7 +347,11 @@ async function indexDecision(decision) {
     document.update_date = decision.update_date;
   }
   if (decision.update_datetime) {
-    document.update_datetime = decision.update_datetime;
+    if (decision.update_datetime instanceof Date) {
+      document.update_datetime = decision.update_datetime.toISOString();
+    } else {
+      document.update_datetime = decision.update_datetime;
+    }
   }
   if (decision.visa) {
     document.visa = decision.visa;
