@@ -2,6 +2,8 @@ name: Publish Docker image & deploy to k8s
 
 on:
   workflow_dispatch:
+  push:
+    branches: [dev, master]
 
 jobs:
   build-publish:
