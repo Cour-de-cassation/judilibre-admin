@@ -65,7 +65,7 @@ jobs:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
   restart-elastic-scw-prod-par1:
-    name: 🔃 Restart elastic cluster on dev
+    name: 🔃 Restart elastic cluster on prod par1
     if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
     runs-on: ubuntu-latest
     env:
@@ -124,7 +124,7 @@ jobs:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
   restart-elastic-scw-prod-par2:
-    name: 🔃 Restart elastic cluster on dev
+    name: 🔃 Restart elastic cluster on prod par2
     needs: restart-elastic-scw-prod-par1
     if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
     runs-on: ubuntu-latest

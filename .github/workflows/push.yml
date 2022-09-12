@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: 🐳 Build docker image
+  build-publish:
+    name: 🐳 Build and publish docker image
     runs-on: ubuntu-latest
     env:
       APP_GROUP: judilibre
