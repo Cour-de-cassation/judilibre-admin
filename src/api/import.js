@@ -233,13 +233,13 @@ api.post(
     'decisions.*.decision_datetime': {
       in: 'body',
       isISO8601: true,
-      errorMessage: `Decision has no date.`,
+      errorMessage: `Decision has no datetime.`,
       optional: false,
     },
     'decisions.*.update_datetime': {
       in: 'body',
       isISO8601: true,
-      errorMessage: `Decision.update_date must be a ISO-8601 date (e.g. 2021-05-13).`,
+      errorMessage: `Decision.update_datetime must be a ISO-8601 full date (e.g. 2021-05-13T06:00:00Z).`,
       optional: true,
     },
   }),
