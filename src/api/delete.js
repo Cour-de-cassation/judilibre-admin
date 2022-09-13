@@ -30,9 +30,10 @@ api.post(
       }
       return res.status(200).json(result);
     } catch (e) {
-      return res
-        .status(500)
-        .json({ route: `${req.method} ${req.path}`, errors: [{ msg: 'Internal Server Error', error: e.message }] });
+      return res.status(500).json({
+        route: `${req.method} ${req.path}`,
+        errors: [{ msg: 'Internal Server Error', error: JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null) }],
+      });
     }
   },
 );
@@ -57,7 +58,7 @@ async function postDelete(query) {
       }
     } catch (e) {
       response.deleted = false;
-      response.reason = e.message;
+      response.reason = JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null);
       console.error(`${process.env.APP_ID}: Error in '${route}' API while processing decision ${query.id}`);
       console.error(e);
     }

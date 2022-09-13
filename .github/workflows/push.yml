@@ -1,13 +1,13 @@
 name: Publish Docker image & deploy to k8s
 
 on:
+  workflow_dispatch:
   push:
     branches: [dev, master]
-  workflow_dispatch:
 
 jobs:
-  build:
-    name: 🐳 Build docker image
+  build-publish:
+    name: 🐳 Build and publish docker image
     runs-on: ubuntu-latest
     env:
       APP_GROUP: judilibre
@@ -86,7 +86,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
   deploy-scw-dev:
     name: 🚀 Deploy, update on Scaleway (dev on fr-par-1) ☸️
-    needs: build
+    needs: build-publish
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     env:
@@ -160,7 +160,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
   deploy-scw-prod-par1:
     name: 🚀 Deploy, update on Scaleway (master on prod fr-par-1) ☸️
-    needs: build
+    needs: build-publish
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     env:

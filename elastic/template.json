@@ -399,6 +399,16 @@
             "analyzer": "exact_french"
           }
         }
+      },
+      "legacy": {
+        "type": "flattened",
+        "index": true
+      },
+      "decision_datetime": {
+        "type": "date"
+      },
+      "update_datetime": {
+        "type": "date"
       }
     }
   }
