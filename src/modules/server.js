@@ -37,6 +37,7 @@ class Server {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(rateLimiterMiddleware);
     this.app.use((req, res, next) => {
+      res.setHeader('X-Powered-By', false);
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'deny');
       res.setHeader('Content-Security-Policy', "default-src 'none'");
