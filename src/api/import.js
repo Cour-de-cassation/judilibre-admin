@@ -242,6 +242,12 @@ api.post(
       errorMessage: `Decision.update_datetime must be a ISO-8601 full date (e.g. 2021-05-13T06:00:00Z).`,
       optional: true,
     },
+    'decisions.*.titlesAndSummaries': {
+      in: 'body',
+      isObject: true,
+      errorMessage: `Decision.titlesAndSummaries must be an object.`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
@@ -499,6 +505,10 @@ async function indexDecision(decision) {
   }
   if (decision.legacy) {
     document.legacy = decision.legacy;
+  }
+
+  if (decision.titlesAndSummaries) {
+    document.titlesAndSummaries = decision.titlesAndSummaries;
   }
 
   const response = await Elastic.client.index({
