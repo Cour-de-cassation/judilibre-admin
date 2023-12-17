@@ -7,6 +7,8 @@ if [ ! -z "${APP_SELF_SIGNED}" ];then
   export CURL="${CURL} -k"
 fi;
 
+exit 0
+
 if [ "${ACME}" == "acme-staging" ];then
   curl -s https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem -o letsencrypt-stg-root-x1.pem
   export CURL="${CURL} --cacert letsencrypt-stg-root-x1.pem"

@@ -409,6 +409,10 @@
       },
       "update_datetime": {
         "type": "date"
+      },
+      "titlesAndSummaries": {
+        "type": "flattened",
+        "index": false
       }
     }
   }
