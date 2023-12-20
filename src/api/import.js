@@ -244,8 +244,8 @@ api.post(
     },
     'decisions.*.titlesAndSummaries': {
       in: 'body',
-      isObject: true,
-      errorMessage: `Decision.titlesAndSummaries must be an object.`,
+      isArray: true,
+      errorMessage: `Decision.titlesAndSummaries must be an Array.`,
       optional: true,
     },
   }),
