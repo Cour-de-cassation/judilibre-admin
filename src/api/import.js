@@ -248,6 +248,13 @@ api.post(
       errorMessage: `Decision.titlesAndSummaries must be an Array.`,
       optional: true,
     },
+    'decisions.*.particularInterest': {
+      in: 'body',
+      isBoolean: true,
+      toBoolean: true,
+      errorMessage: `Decision.particularInterest must be a boolean.`,
+      optional: true,
+    },
   }),
   async (req, res) => {
     const errors = validationResult(req);
@@ -509,6 +516,12 @@ async function indexDecision(decision) {
 
   if (decision.titlesAndSummaries) {
     document.titlesAndSummaries = decision.titlesAndSummaries;
+  }
+
+  if (decision.particularInterest) {
+    document.particularInterest = decision.particularInterest === true;
+  } else {
+    document.particularInterest = false;
   }
 
   const response = await Elastic.client.index({

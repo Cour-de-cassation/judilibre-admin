@@ -413,6 +413,9 @@
       "titlesAndSummaries": {
         "type": "flattened",
         "index": false
+      },
+      "particularInterest": {
+        "type": "boolean"
       }
     }
   }
