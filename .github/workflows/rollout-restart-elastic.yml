@@ -22,7 +22,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 13000Mi
       ELASTIC_MEM_JVM: 6500m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD }}
@@ -80,7 +80,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 13000Mi
       ELASTIC_MEM_JVM: 6500m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}
@@ -140,7 +140,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 12288Mi
       ELASTIC_MEM_JVM: 6144m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}

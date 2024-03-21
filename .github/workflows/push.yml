@@ -101,7 +101,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 2048Mi
       ELASTIC_MEM_JVM: 1024m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD }}
@@ -175,7 +175,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 12288Mi
       ELASTIC_MEM_JVM: 6144m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}
@@ -249,7 +249,7 @@ jobs:
       API_PORT: 8080
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 12288Mi
       ELASTIC_MEM_JVM: 6144m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}
@@ -262,7 +262,7 @@ jobs:
       KUBE_TYPE: k8s
       KUBE_ZONE: scw-prod-par2
       SCW_ZONE: fr-par-2
-      SCW_KUBE_NODES: 3
+      SCW_KUBE_NODES: 1
       START_TIMEOUT: 240
     steps:
       - uses: actions/checkout@v1
