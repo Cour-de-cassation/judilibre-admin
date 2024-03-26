@@ -20,7 +20,7 @@ jobs:
       APP_SELF_SIGNED: true
       DOCKER_USERNAME: opendatajustice
       ELASTIC_INDEX: judilibre_0
-      ELASTIC_NODES: 3
+      ELASTIC_NODES: 1
       ELASTIC_MEM: 1024Mi
       ELASTIC_MEM_JVM: 512m
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownAndClusterDeletion
@@ -262,7 +262,7 @@ jobs:
       KUBE_TYPE: k8s
       KUBE_ZONE: scw-prod-par2
       SCW_ZONE: fr-par-2
-      SCW_KUBE_NODES: 1
+      SCW_KUBE_NODES: 3
       START_TIMEOUT: 240
     steps:
       - uses: actions/checkout@v1
