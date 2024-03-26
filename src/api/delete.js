@@ -46,12 +46,14 @@ async function postDelete(query) {
       const result = await deleteDecision(query.id);
       if (result === true) {
         response.deleted = true;
+        /*
         try {
           await Elastic.client.indices.refresh({ index: process.env.ELASTIC_INDEX });
         } catch (e) {
           console.error(`${process.env.APP_ID}: Error in '${route}' API while refreshing indices.`);
           console.error(e);
         }
+        */
       } else {
         response.deleted = false;
         response.reason = result;

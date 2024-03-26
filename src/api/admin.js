@@ -55,6 +55,7 @@ async function getAdmin(query) {
   };
   switch (query.command) {
     case 'delete_all':
+      /*
       try {
         const deleteResult = await Elastic.client.indices.delete({
           index: process.env.ELASTIC_INDEX,
@@ -64,6 +65,7 @@ async function getAdmin(query) {
         console.error(e);
         response.result = e;
       }
+      */
       break;
     case 'refresh_template':
       try {

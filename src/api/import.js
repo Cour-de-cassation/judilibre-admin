@@ -306,12 +306,14 @@ async function postImport(query) {
         console.error(e);
       }
     }
+    /*
     try {
       await Elastic.client.indices.refresh({ index: process.env.ELASTIC_INDEX });
     } catch (e) {
       console.error(`${process.env.APP_ID}: Error in '${route}' API while refreshing indices.`);
       console.error(e);
     }
+    */
   }
   return response;
 }
