@@ -77,7 +77,7 @@ async function postDeleteMany(ids) {
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i];
     try {
-      const result = await deleteDecision(id);
+      const result = await deleteDecision(id, false);
       if (result === true) {
         response[id] = true;
       } else {
@@ -97,7 +97,7 @@ async function postDelete(query) {
   if (query && query.id) {
     response.id = query.id;
     try {
-      const result = await deleteDecision(query.id);
+      const result = await deleteDecision(query.id, true);
       if (result === true) {
         response.deleted = true;
       } else {
@@ -114,11 +114,11 @@ async function postDelete(query) {
   return response;
 }
 
-async function deleteDecision(id) {
+async function deleteDecision(id, refresh) {
   const response = await Elastic.client.delete({
     id: id,
     index: process.env.ELASTIC_INDEX,
-    refresh: true,
+    refresh: refresh,
   });
   if (response && response.body && response.body.result === 'deleted') {
     return true;
