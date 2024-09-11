@@ -66,6 +66,11 @@ async function getPatch(query) {
               lang: 'painless',
               source: 'ctx._source.particularInterest = false',
             },
+            query: {
+              term: {
+                particularInterest: true,
+              },
+            },
           },
         });
         response.result = updateResult.body;
