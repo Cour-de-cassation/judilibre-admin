@@ -60,6 +60,7 @@ async function getPatch(query) {
         const updateResult = await Elastic.client.updateByQuery({
           index: process.env.ELASTIC_INDEX,
           refresh: true,
+          conflicts: 'proceed',
           body: {
             script: {
               lang: 'painless',
