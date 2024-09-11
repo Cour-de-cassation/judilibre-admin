@@ -61,6 +61,7 @@ async function getPatch(query) {
           index: process.env.ELASTIC_INDEX,
           refresh: true,
           conflicts: 'proceed',
+          wait_for_completion: false,
           body: {
             script: {
               lang: 'painless',
