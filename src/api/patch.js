@@ -60,10 +60,12 @@ async function getPatch(query) {
         const updateResult = await Elastic.client.updateByQuery({
           index: process.env.ELASTIC_INDEX,
           refresh: true,
-          script: {
-            lang: 'painless',
-            source: 'ctx._source.particularInterest = false',
-          }
+          body: {
+            script: {
+              lang: 'painless',
+              source: 'ctx._source.particularInterest = false',
+            },
+          },
         });
         response.result = updateResult.body;
         response.done = true;
