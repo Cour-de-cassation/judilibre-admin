@@ -53,6 +53,7 @@ async function getPatch(query) {
     patch: query.patch,
     done: null,
     result: null,
+    date: new Date()
   };
   switch (query.patch) {
     case 'reset_particular_interest':
