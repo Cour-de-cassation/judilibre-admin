@@ -6,7 +6,7 @@ const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
 const Elastic = require('../modules/elastic');
 const route = 'patch';
-const patches = ['reset_particular_interest'];
+const patches = ['reset_particular_interest', 'set_particular_interest'];
 
 api.get(
   `/${route}`,
@@ -81,6 +81,26 @@ async function getPatch(query) {
         response.result = e;
         response.done = false;
       }
+      break;
+    case 'set_particular_interest':
+      try {
+        const updateResult = await Elastic.client.update({
+          index: process.env.ELASTIC_INDEX,
+          refresh: true,
+          id: query.id,
+          body: {
+            doc: {
+              particularInterest: true
+            }
+          }
+        })
+        response.result = updateResult.body;
+        response.done = true;
+      } catch (e) {
+        response.result = e;
+        response.done = false;
+      }
+      break;
   }
   return response;
 }
