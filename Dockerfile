@@ -83,3 +83,16 @@ EXPOSE ${API_PORT}
 #   CMD curl -f --silent --retry 6 --max-time 5 --retry-delay 10 --retry-max-time 60 "http://localhost:${API_PORT}/healthcheck" || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'
 
 CMD ["node","./src"]
+
+################################
+# Step x: "local" target #
+################################
+FROM base as local
+
+USER node
+WORKDIR /home/node
+
+COPY --chown=node:node . .
+RUN npm i
+
+CMD ["npm", "run", "start:watch"]
