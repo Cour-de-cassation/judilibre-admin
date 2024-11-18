@@ -1,30 +1,38 @@
 const Elastic = require('../modules/elastic');
 
+// TRANSACTION INTERFACES
+
 async function toHistory(transactions) {
   const transactionsToIndex = transactions.map(fromElasticResultTotransaction);
   try {
     await indexTransactions(transactionsToIndex);
   } catch (e) {
-    console.error();
+    // TODO: Something has to be done on this error (reset the last action ? Send a mail ?)
+    console.error(`${process.env.APP_ID}: Error creating inconsistencies`);
+    console.error(`Transaction to add: ${JSON.stringify(transactions)}`);
+    console.error(e);
   }
 }
+
+// TRANSACTION INSTRUCTIONS
+
+async function indexTransactions(transactions) {
+  return Elastic.client.bulk({
+    body: transactions.flatMap((transaction) => [{ index: { _index: process.env.TRANSACTION_INDEX } }, transaction]),
+  });
+}
+
+// DECISION FORMATS (INPUT)
 
 function fromElasticResultTotransaction({ _id, result }) {
   return {
     id: _id,
     action: result,
-    date: new Date()
+    date: new Date(),
   };
 }
 
-async function indexTransactions(transactions) {
-  return Elastic.client.bulk({
-    body: transactions.flatMap(({ id, ...transaction }) => [
-      { index: { _id: id, _index: process.env.TRANSACTION_INDEX } },
-      transaction,
-    ]),
-  });
-}
+// EXPORTS
 
 module.exports = {
   toHistory,

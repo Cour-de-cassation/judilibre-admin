@@ -1,12 +1,42 @@
 const Elastic = require('../modules/elastic');
 const { toHistory } = require('./transaction');
 
+// DECISION INTERFACES
+
 async function toPublish(decisions) {
   const decisionsToIndex = decisions.map(fromPayloadToDecision);
   const items = await indexDecisions(decisionsToIndex);
   toHistory(items.map(({ index }) => index)); // Warn: not controlled by API flux
   return fromIndexingToResponse(items);
 }
+
+async function toUnpublish(idDecisions) {
+  const items = await deleteDecisions(idDecisions);
+  toHistory(items.map(({ delete: action }) => action)); // Warn: not controlled by API flux
+  return fromDeletingToResponse(items);
+}
+
+// DECISION INSTRUCTIONS
+
+async function indexDecisions(decisions) {
+  const { body } = await Elastic.client.bulk({
+    body: decisions.flatMap(({ id, ...decision }) => [
+      { index: { _id: id, _index: process.env.ELASTIC_INDEX } },
+      decision,
+    ]),
+  });
+  return body.items;
+}
+
+async function deleteDecisions(ids) {
+  console.log(ids);
+  const { body } = await Elastic.client.bulk({
+    body: ids.map((id) => ({ delete: { _id: id, _index: process.env.ELASTIC_INDEX } })),
+  });
+  return body.items;
+}
+
+// DECISION FORMATS (INPUT)
 
 function fromPayloadToDecision(decisionPayload) {
   // TODO: zones elements as array && zones.introduction elements with start and end should be validated by express schema validator
@@ -46,22 +76,20 @@ function fromPayloadToDecision(decisionPayload) {
   };
 }
 
+// DECISION FORMATS (OUTPUT)
+
 function fromIndexingToResponse(indexingDecisions) {
   return indexingDecisions.reduce(
     (acc, { index: indexingDecision }) => {
       const error = indexingDecision.error;
       if (error) {
-        console.error(
-          `${process.env.APP_ID}: Error in 'publish' API while processing decision ${indexingDecision._id}`,
-        ); // TODO: precise route ?
-        console.error(error);
         return {
           indexed: acc.indexed,
           not_indexed: [
             ...acc.not_indexed,
             {
               id: indexingDecision._id,
-              reason: JSON.stringify(error, error ? Object.getOwnPropertyNames(error) : null),
+              reason: fromErrorToResponse(error, 'indexing', indexingDecision._id),
             },
           ],
         };
@@ -76,16 +104,34 @@ function fromIndexingToResponse(indexingDecisions) {
   );
 }
 
-async function indexDecisions(decisions) {
-  const { body } = await Elastic.client.bulk({
-    body: decisions.flatMap(({ id, ...decision }) => [
-      { index: { _id: id, _index: process.env.ELASTIC_INDEX } },
-      decision,
-    ]),
+function fromDeletingToResponse(deletingDecisions) {
+  return deletingDecisions.map(({ delete: deletingDecision }) => {
+    const error = deletingDecision.error;
+    if (error) {
+      return {
+        id: deletingDecision._id,
+        deleted: false,
+        reason: fromErrorToResponse(error, 'deleting', deletingDecision._id),
+      };
+    } else {
+      return {
+        id: deletingDecision._id,
+        deleted: deletingDecision.result === 'deleted',
+        reason: deletingDecision.result,
+      };
+    }
   });
-  return body.items;
 }
+
+function fromErrorToResponse(e, action, id) {
+  console.error(`${process.env.APP_ID}: Error while '${action}' decision ${id}`);
+  console.error(e);
+  return JSON.stringify(e, e ? Object.getOwnPropertyNames(e) : null);
+}
+
+// EXPORTS
 
 module.exports = {
   toPublish,
+  toUnpublish,
 };
