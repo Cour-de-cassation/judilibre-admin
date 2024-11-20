@@ -43,7 +43,7 @@ api.post(
       in: 'body',
       isFloat: true,
       errorMessage: `Decision has no version number.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.source': {
       in: 'body',
@@ -82,19 +82,19 @@ api.post(
       isString: true,
       toLowerCase: true,
       errorMessage: `Decision.publication must be an array of strings.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.solution': {
       in: 'body',
       isString: true,
       errorMessage: `Decision has no solution.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.type': {
       in: 'body',
       isString: true,
       errorMessage: `Decision has no type.`,
-      optional: false,
+      optional: true,
     },
     'decisions.*.text': {
       in: 'body',
