@@ -1,4 +1,4 @@
-# Guide de Déploiement d'une Judilibre-admin sur CloudPi
+# Guide de Déploiement Judilibre-admin sur CloudPi
 
 Ce document décrit les étapes nécessaires pour déployer l'application **[ judilibre-admin ]**.
 
