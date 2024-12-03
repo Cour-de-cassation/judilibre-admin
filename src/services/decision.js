@@ -42,7 +42,7 @@ function fromPayloadToDecision(decisionPayload) {
   // TODO: zones elements as array && zones.introduction elements with start and end should be validated by express schema validator
   // TODO: it should be safer with typescript
   const textZone = (zones) =>
-    zones && Array.isArray(zones) && zones.map((zone) => decisionPayload.text.substring(start, end).trim());
+    zones && Array.isArray(zones) && zones.map(({ start, end }) => decisionPayload.text.substring(start, end).trim());
 
   return {
     ...decisionPayload,
