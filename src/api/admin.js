@@ -1,3 +1,7 @@
+/**
+ * TODO: Is this really used ? Guess it could be deleted to simplify readability
+ */
+
 require('../modules/env');
 const fs = require('fs');
 const path = require('path');
