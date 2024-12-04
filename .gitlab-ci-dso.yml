@@ -26,7 +26,7 @@ docker-build:
   variables:
     WORKING_DIR: "."
     DOCKERFILE: Dockerfile
-    IMAGE_NAMES: judilibre-admin:0.1.4 judilibre-admin
+    IMAGE_NAMES: judilibre-admin:0.1.4 judilibre-admin $CI_PROJECT_NAME:$CI_COMMIT_BRANCH $CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA $CI_PROJECT_NAME:latest
   stage: docker-build
   extends:
   - .kaniko:build-push
