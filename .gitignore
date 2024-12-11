@@ -104,4 +104,4 @@ dist
 .tern-port
 
 # Secret sops
-helm/templates/s3-secret.yaml
+helm/templates/secret-sops.yaml
