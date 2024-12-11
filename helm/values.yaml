@@ -136,7 +136,7 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
-appId: judilibire-admin
+appId: judilibre-admin
 
 env:
 - name: ELASTIC_NODE
