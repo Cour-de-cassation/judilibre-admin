@@ -87,12 +87,12 @@ CMD ["node","./src"]
 ################################
 # Step x: "local" target #
 ################################
-FROM base as local
-
-USER node
-WORKDIR /home/node
-
-COPY --chown=node:node . .
-RUN npm i
-
-CMD ["npm", "run", "start:watch"]
+#FROM base as local
+#
+#USER node
+#WORKDIR /home/node
+#
+#COPY --chown=node:node . .
+#RUN npm i
+#
+#CMD ["npm", "run", "start:watch"]
