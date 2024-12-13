@@ -9,6 +9,8 @@ include:
 variables:
   TAG: "${CI_COMMIT_REF_SLUG}"
   REGISTRY_URL: "${IMAGE_REPOSITORY}"
+  BUILD_TARGET: "production"  # Target Docker par défaut
+  EXTRA_BUILD_ARGS: "--target ${BUILD_TARGET}"  # Passe le target au build
 
 # Differents stages du build. Le stage read-secret est obligatoire et permet de recuperer les secret CI du projet
 stages:
@@ -27,6 +29,7 @@ docker-build:
     WORKING_DIR: "."
     DOCKERFILE: Dockerfile
     IMAGE_NAMES: judilibre-admin:0.1.4 judilibre-admin $CI_PROJECT_NAME:$CI_COMMIT_BRANCH $CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA $CI_PROJECT_NAME:latest
+    EXTRA_BUILD_ARGS: "--target ${BUILD_TARGET}"
   stage: docker-build
   extends:
   - .kaniko:build-push
