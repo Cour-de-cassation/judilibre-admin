@@ -9,7 +9,7 @@ async function toHistory(transactions) {
   } catch (e) {
     // TODO: Something has to be done on this error (reset the last action ? Send a mail ?)
     console.error(`${process.env.APP_ID}: Error creating inconsistencies`);
-    console.error(`Transaction to add: ${JSON.stringify(transactions)}`);
+    console.error(`Transactions not created: ${JSON.stringify(transactions)}`);
     console.error(e);
   }
 }
