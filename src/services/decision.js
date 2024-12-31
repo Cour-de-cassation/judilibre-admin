@@ -5,35 +5,67 @@ const { toHistory } = require('./transaction');
 
 async function toPublish(decisions) {
   const decisionsToIndex = decisions.map(fromPayloadToDecision);
-  const items = await indexDecisions(decisionsToIndex);
-  toHistory(items.map(({ index }) => index)); // Warn: not controlled by API flux
-  return fromIndexingToResponse(items);
+  const { indexed, notIndexed } = await indexDecisions(decisionsToIndex);
+  try {
+    const transactionItems = indexed.length > 0 ? await toHistory(indexed) : [];
+    return fromIndexingToResponse(indexed, notIndexed, transactionItems);
+  } catch (e) {
+    return fromIndexingToResponse(indexed, notIndexed, []);
+  }
 }
 
 async function toUnpublish(idDecisions) {
   const items = await deleteDecisions(idDecisions);
-  toHistory(items.map(({ delete: action }) => action)); // Warn: not controlled by API flux
-  return fromDeletingToResponse(items);
+  const deleted = items.filter(({ deleted }) => deleted);
+  try {
+    const transactionItems = await toHistory(deleted.map(({ action }) => action));
+    return fromDeletingToResponse(items, transactionItems);
+  } catch (e) {
+    return fromDeletingToResponse(items, []);
+  }
 }
 
 // DECISION INSTRUCTIONS
 
 async function indexDecisions(decisions) {
-  const { body } = await Elastic.client.bulk({
+  const {
+    body: { items },
+  } = await Elastic.client.bulk({
     body: decisions.flatMap(({ id, ...decision }) => [
       { index: { _id: id, _index: process.env.ELASTIC_INDEX } },
       decision,
     ]),
   });
-  return body.items;
+
+  return items.reduce(
+    (acc, { index }) => {
+      return !index.error && (index.result === 'updated' || index.result === 'created')
+        ? { ...acc, indexed: [...acc.indexed, index] }
+        : { ...acc, notIndexed: [...acc.notIndexed, index] };
+    },
+    {
+      indexed: [],
+      notIndexed: [],
+    },
+  );
 }
 
 async function deleteDecisions(ids) {
-  console.log(ids);
-  const { body } = await Elastic.client.bulk({
+  const {
+    body: { items },
+  } = await Elastic.client.bulk({
     body: ids.map((id) => ({ delete: { _id: id, _index: process.env.ELASTIC_INDEX } })),
   });
-  return body.items;
+
+  return items.map(({ delete: action }) =>
+    action.error
+      ? {
+          action,
+          deleted: false,
+          reason: fromErrorToResponse(action.error, 'deleting', action._id),
+        }
+      : { action, deleted: action.result === 'deleted', reason: action.result },
+  );
 }
 
 // DECISION FORMATS (INPUT)
@@ -78,49 +110,52 @@ function fromPayloadToDecision(decisionPayload) {
 
 // DECISION FORMATS (OUTPUT)
 
-function fromIndexingToResponse(indexingDecisions) {
-  return indexingDecisions.reduce(
-    (acc, { index: indexingDecision }) => {
-      const error = indexingDecision.error;
-      if (error) {
-        return {
-          indexed: acc.indexed,
-          not_indexed: [
-            ...acc.not_indexed,
-            {
-              id: indexingDecision._id,
-              reason: fromErrorToResponse(error, 'indexing', indexingDecision._id),
-            },
-          ],
-        };
-      } else if (indexingDecision.result !== 'updated' && indexingDecision.result !== 'created')
-        return {
-          indexed: acc.indexed,
-          not_indexed: [...acc.not_indexed, { id: indexingDecision._id, reason: indexingDecision.result }],
-        };
-      else return { indexed: [...acc.indexed, indexingDecision._id], not_indexed: acc.not_indexed };
-    },
-    { indexed: [], not_indexed: [] },
-  );
+function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
+  return {
+    indexed: indexedItems.map((index) => index._id),
+    not_indexed: notIndexedItems.map((item) =>
+      item.error
+        ? { id: item.index._id, reason: fromErrorToResponse(item.error, 'indexing', item.index._id) }
+        : { id: item.index._id, reason: item.index.result },
+    ),
+    transaction_not_historicized: indexedItems.filter((index) => {
+      const loggedItem = loggedItems.find(({ input }) => input === index);
+      const error = loggedItem?.item?.index?.error ?? null;
+      if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
+      return !!error;
+    }),
+  };
 }
 
-function fromDeletingToResponse(deletingDecisions) {
-  return deletingDecisions.map(({ delete: deletingDecision }) => {
-    const error = deletingDecision.error;
-    if (error) {
-      return {
-        id: deletingDecision._id,
-        deleted: false,
-        reason: fromErrorToResponse(error, 'deleting', deletingDecision._id),
-      };
-    } else {
-      return {
-        id: deletingDecision._id,
-        deleted: deletingDecision.result === 'deleted',
-        reason: deletingDecision.result,
-      };
-    }
-  });
+function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
+  console.dir(loggedItems, { depth: 3 })
+  // Cause of technical debt: should be removed to have only one response format:
+  if (deletingDecisions.length === 1)
+    return {
+      id: deletingDecisions[0].action._id,
+      deleted: deletingDecisions[0].deleted,
+      reason: deletingDecisions[0].reason,
+      transaction_not_historicized: deletingDecisions.filter(({ action }) => {
+        const loggedItem = loggedItems.find(({ input }) => input === action);
+        const error = loggedItem?.item?.delete?.error ?? null;
+        if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
+        return !!error;
+      }),
+    };
+
+  return deletingDecisions.reduce(
+    (acc, { action, deleted, reason }) => ({
+      ...acc,
+      [action._id]: { deleted, reason },
+      transaction_not_historicized: deletingDecisions.filter(({ action }) => {
+        const loggedItem = loggedItems.find(({ input }) => input === action);
+        const error = loggedItem?.item?.delete?.error ?? null;
+        if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
+        return !!error;
+      }),
+    }),
+    {},
+  );
 }
 
 function fromErrorToResponse(e, action, id) {

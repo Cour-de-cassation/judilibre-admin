@@ -60,7 +60,8 @@ const importInputSchema = joi.object({
             'decision.moyens': 'Decision.zones.moyens must be an array of including start and end as integer.',
           }),
           motivations: zoneSchema.messages({
-            'decision.motivations': 'Decision.zones.motivations must be an array of including start and end as integer.',
+            'decision.motivations':
+              'Decision.zones.motivations must be an array of including start and end as integer.',
           }),
           dispositif: zoneSchema.messages({
             'decision.dispositif': 'Decision.zones.dispositif must be an array of including start and end as integer.',
@@ -93,13 +94,10 @@ const importInputSchema = joi.object({
           .isoDate()
           .required()
           .messages({ 'decision.decision_datetime': 'Decision has no datetime.' }),
-        update_datetime: joi
-          .string()
-          .isoDate()
-          .messages({
-            'decision.update_datetime':
-              'Decision.update_datetime must be a ISO-8601 full date (e.g. 2021-05-13T06:00:00Z).',
-          }),
+        update_datetime: joi.string().isoDate().messages({
+          'decision.update_datetime':
+            'Decision.update_datetime must be a ISO-8601 full date (e.g. 2021-05-13T06:00:00Z).',
+        }),
         titlesAndSummaries: joi.array(),
         particularInterest: joi
           .boolean()
@@ -107,13 +105,13 @@ const importInputSchema = joi.object({
       }),
     )
     .required()
-    .messages({ 'decisions': 'Request has no decision'}),
+    .messages({ decisions: 'Request has no decision' }),
 });
 
 api.post(`/${route}`, async (req, res) => {
   try {
-    const body = await importInputSchema.validateAsync(req.body, { abortEarly: false });
-    const result = await toPublish(body);
+    const { decisions } = await importInputSchema.validateAsync(req.body, { abortEarly: false, convert: false });
+    const result = await toPublish(decisions);
     return res.status(200).json(result);
   } catch (e) {
     if (joi.isError(e)) return res.status(400).json({ route: `${req.method} ${req.path}`, errors: e });

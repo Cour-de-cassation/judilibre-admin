@@ -26,7 +26,7 @@ api.post(
       return res.status(400).json({ route: `${req.method} ${req.path}`, errors: errors.array() });
     }
     try {
-      const [result] = await toUnpublish([req.body.id]);
+      const result = await toUnpublish([req.body.id]);
       if (!result.deleted) {
         return res.status(400).json({
           route: `${req.method} ${req.path}`,
@@ -65,15 +65,10 @@ api.post(
     }
     try {
       const result = await toUnpublish(req.body.id);
-      const response = result.reduce(
-        (acc, { id, deleted }) => ({
-          ...acc,
-          [id]: deleted,
-        }),
-        {
-          took: new Date().getTime() - t0.getTime(),
-        },
-      );
+      const response = {
+        ...result,
+        took: new Date().getTime() - t0.getTime(),
+      };
       return res.status(200).json(response);
     } catch (e) {
       return res.status(500).json({
