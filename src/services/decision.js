@@ -128,7 +128,6 @@ function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
 }
 
 function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
-  console.dir(loggedItems, { depth: 3 })
   // Cause of technical debt: should be removed to have only one response format:
   if (deletingDecisions.length === 1)
     return {
