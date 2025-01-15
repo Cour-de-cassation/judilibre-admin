@@ -1,0 +1,18 @@
+{
+  "index_patterns": ["transaction", "transaction_*"],
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "text",
+        "index": false
+      },
+      "date": {
+        "type": "date"
+      },
+      "action": {
+        "type": "text",
+        "index": false
+      }
+    }
+  }
+}

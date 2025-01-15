@@ -1,3 +1,7 @@
+/**
+ * TODO: Is this really used ? Guess it could be deleted to simplify readability
+ */
+
 require('../modules/env');
 const fs = require('fs');
 const path = require('path');
@@ -70,12 +74,20 @@ async function getAdmin(query) {
     case 'refresh_template':
       try {
         const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
+        const templateTransaction = JSON.parse(
+          fs.readFileSync(path.join(__dirname, '..', 'config', 'template_transaction.json')),
+        );
         const refreshResult = await Elastic.client.indices.putTemplate({
           name: 't_judilibre',
           create: false,
           body: template,
         });
-        response.result = refreshResult.body;
+        const refreshResultTransaction = await Elastic.client.indices.putTemplate({
+          name: 't_transaction',
+          create: false,
+          body: templateTransaction,
+        });
+        response.result = [refreshResult.body, refreshResultTransaction.body];
       } catch (e) {
         console.error(e);
         response.result = e;
@@ -88,17 +100,25 @@ async function getAdmin(query) {
       };
       let error = null;
       try {
-        expected = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json')));
-        actual = await Elastic.client.indices.getTemplate({
-          name: 't_judilibre',
-        });
+        expected = [
+          JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template.json'))),
+          JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'template_transaction.json'))),
+        ];
+        actual = await Promise.all([
+          Elastic.client.indices.getTemplate({
+            name: 't_judilibre',
+          }),
+          Elastic.client.indices.getTemplate({
+            name: 't_transaction',
+          }),
+        ]);
       } catch (e) {
         console.error(e);
         error = e;
       }
       response.result = {
         expected: expected,
-        actual: actual.body,
+        actual: actual.map(_ => _.body),
         error: error,
       };
       break;
