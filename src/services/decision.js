@@ -10,6 +10,7 @@ async function toPublish(decisions) {
     const transactionItems = indexed.length > 0 ? await toHistory(indexed) : [];
     return fromIndexingToResponse(indexed, notIndexed, transactionItems);
   } catch (e) {
+    console.error(e)
     return fromIndexingToResponse(indexed, notIndexed, []);
   }
 }
@@ -21,6 +22,7 @@ async function toUnpublish(idDecisions) {
     const transactionItems = await toHistory(deleted.map(({ action }) => action));
     return fromDeletingToResponse(items, transactionItems);
   } catch (e) {
+    console.error(e)
     return fromDeletingToResponse(items, []);
   }
 }
@@ -120,7 +122,7 @@ function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
     ),
     transaction_not_historicized: indexedItems.filter((index) => {
       const loggedItem = loggedItems.find(({ input }) => input === index);
-      const error = loggedItem?.item?.index?.error ?? null;
+      const error = loggedItem?.item?.index?.error ?? "Unknown Server Error";
       if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
       return !!error;
     }),
@@ -136,7 +138,7 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       reason: deletingDecisions[0].reason,
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
         const loggedItem = loggedItems.find(({ input }) => input === action);
-        const error = loggedItem?.item?.delete?.error ?? null;
+        const error = loggedItem?.item?.delete?.error ?? "Unknown Server Error";
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;
       }),
@@ -148,7 +150,7 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       [action._id]: { deleted, reason },
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
         const loggedItem = loggedItems.find(({ input }) => input === action);
-        const error = loggedItem?.item?.delete?.error ?? null;
+        const error = loggedItem?.item?.delete?.error ?? "Unknown Server Error";
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;
       }),
