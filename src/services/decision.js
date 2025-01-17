@@ -121,8 +121,8 @@ function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
         : { id: item.index._id, reason: item.index.result },
     ),
     transaction_not_historicized: indexedItems.filter((index) => {
-      const loggedItem = loggedItems.find(({ input }) => input === index);
-      const error = loggedItem?.item?.index?.error ?? "Unknown Server Error";
+      const loggedItem = loggedItems.find(({ input }) => input === index) ?? { item: { index: { error: "Something wrong with elasticsearch call" }}};
+      const error = loggedItem.item.index.error;
       if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
       return !!error;
     }),
