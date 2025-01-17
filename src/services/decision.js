@@ -137,8 +137,8 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       deleted: deletingDecisions[0].deleted,
       reason: deletingDecisions[0].reason,
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
-        const loggedItem = loggedItems.find(({ input }) => input === action);
-        const error = loggedItem?.item?.delete?.error ?? "Unknown Server Error";
+        const loggedItem = loggedItems.find(({ input }) => input === action) ?? { item: { delete: { error: "Something wrong with elasticsearch call" }}};
+        const error = loggedItem.item.delete.error;
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;
       }),
@@ -149,8 +149,8 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       ...acc,
       [action._id]: { deleted, reason },
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
-        const loggedItem = loggedItems.find(({ input }) => input === action);
-        const error = loggedItem?.item?.delete?.error ?? "Unknown Server Error";
+        const loggedItem = loggedItems.find(({ input }) => input === action) ?? { item: { delete: { error: "Something wrong with elasticsearch call" }}};
+        const error = loggedItem.item.delete.error;
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;
       }),
