@@ -12,6 +12,7 @@ jobs:
     env:
       APP_GROUP: judilibre
       ELASTIC_INDEX: judilibre_0
+      TRANSACTION_INDEX: transaction_0
       SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
       SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
     steps:
