@@ -84,7 +84,7 @@ function fromPayloadToDecision(decisionPayload) {
     numberFull: decisionPayload.number,
     rapprochements: { value: decisionPayload.rapprochements },
     fileType: decisionPayload.files?.map((file) => {
-      const type = file.type ? parseInt(type, 10) : -1;
+      const type = file.type ? parseInt(file.type, 10) : -1;
       const codes = {
         1: 'prep_rapp',
         2: 'prep_avis',
