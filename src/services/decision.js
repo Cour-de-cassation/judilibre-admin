@@ -117,8 +117,8 @@ function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
     indexed: indexedItems.map((index) => index._id),
     not_indexed: notIndexedItems.map((item) =>
       item.error
-        ? { id: item.index._id, reason: fromErrorToResponse(item.error, 'indexing', item.index._id) }
-        : { id: item.index._id, reason: item.index.result },
+        ? { id: item._id, reason: fromErrorToResponse(item.error, 'indexing', item._id) }
+        : { id: item._id, reason: item.result },
     ),
     transaction_not_historicized: indexedItems.filter((index) => {
       const loggedItem = loggedItems.find(({ input }) => input === index) ?? { item: { index: { error: "Something wrong with elasticsearch call" }}};
