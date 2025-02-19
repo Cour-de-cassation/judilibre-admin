@@ -20,7 +20,7 @@ const importInputSchema = joi.object({
     .min(1)
     .items(
       joi.object({
-        chamber: joi.string().messages({ 'decision.chamber': 'Decision chamber must be a string.' }),
+        chamber: joi.string().allow('').messages({ 'decision.chamber': 'Decision chamber must be a string.' }),
         decision_date: joi
           .string()
           .isoDate()
@@ -39,15 +39,15 @@ const importInputSchema = joi.object({
           .messages({ 'decision.number': 'Decision.number must be an array of strings.' }),
         publication: joi
           .array()
-          .items(joi.string().lowercase())
+          .items(joi.string().allow('').lowercase())
           .messages({ 'decision.publication': 'Decision.publication must be an array of lowercase strings.' }),
-        solution: joi.string().messages({ 'decision.solution': 'Decision solution must be a string.' }),
-        type: joi.string().messages({ 'decision.type': 'Decision type must be a string.' }),
+        solution: joi.string().allow('').messages({ 'decision.solution': 'Decision solution must be a string.' }),
+        type: joi.string().allow('').messages({ 'decision.type': 'Decision type must be a string.' }),
         text: joi.string().required().messages({ 'decision.text': 'Decision has no text.' }),
         displayText: joi.string().required().messages({ 'decision.displayText': 'Decision has no display text.' }),
-        location: joi.string().messages({ 'decision.location': 'Decision.location must be a string.' }),
-        ecli: joi.string().messages({ 'decision.ecli': 'Decision.ecli must be a string.' }),
-        formation: joi.string().messages({ 'decision.formation': 'Decision.formation must be a string.' }),
+        location: joi.string().allow('').messages({ 'decision.location': 'Decision.location must be a string.' }),
+        ecli: joi.string().allow('').messages({ 'decision.ecli': 'Decision.ecli must be a string.' }),
+        formation: joi.string().allow('').messages({ 'decision.formation': 'Decision.formation must be a string.' }),
         zones: joi.object({
           introduction: zoneSchema.messages({
             'decision.introduction':
@@ -70,8 +70,8 @@ const importInputSchema = joi.object({
             'decision.annexes': 'Decision.zones.annexes must be an array of including start and end as integer.',
           }),
         }),
-        nac: joi.string().messages({ 'decision.nac': 'Decision.nac must be a string.' }),
-        portalis: joi.string().messages({ 'decision.portalis': 'Decision.portalis must be a string.' }),
+        nac: joi.string().allow('').messages({ 'decision.nac': 'Decision.nac must be a string.' }),
+        portalis: joi.string().allow('').messages({ 'decision.portalis': 'Decision.portalis must be a string.' }),
         update_date: joi
           .string()
           .isoDate()
@@ -81,9 +81,9 @@ const importInputSchema = joi.object({
         contested: joi.object(),
         forward: joi.object(),
         timeline: joi.array(),
-        solution_alt: joi.string().messages({ 'decision.solution_alt': 'Decision.solution_alt must be a string.' }),
-        summary: joi.string().messages({ 'decision.summary': 'Decision.summary must be a string.' }),
-        bulletin: joi.string().messages({ 'decision.bulletin': 'Decision.bulletin must be a string.' }),
+        solution_alt: joi.string().allow('').messages({ 'decision.solution_alt': 'Decision.solution_alt must be a string.' }),
+        summary: joi.string().allow('').messages({ 'decision.summary': 'Decision.summary must be a string.' }),
+        bulletin: joi.string().allow('').messages({ 'decision.bulletin': 'Decision.bulletin must be a string.' }),
         files: joi.array(),
         themes: joi.array(),
         lowInterest: joi.boolean().messages({ 'decision.lowInterest': 'Decision.lowInterest must be a boolean.' }), // toBoolean: true ?
