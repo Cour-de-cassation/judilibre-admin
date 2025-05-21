@@ -94,6 +94,8 @@ function fromPayloadToDecision(decisionPayload) {
         6: 'comm_lett',
         7: 'comm_trad',
         8: 'comm_nora',
+        9: 'prep_raco',
+        10: 'prep_avpg',
       };
       return codes[type] ? [codes[type]] : [];
     }),
