@@ -8,8 +8,8 @@
     "dev": "node src/.",
     "start": "node src/.",
     "start:watch": "nodemon src/index.js",
-    "docker:start": "docker compose up -d",
-    "docker:stop": "docker compose down"
+    "start:docker": "docker compose up -d",
+    "stop:docker": "docker compose down"
   },
   "author": "sebastien.courvoisier@justice.fr",
   "license": "",

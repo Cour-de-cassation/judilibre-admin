@@ -1,7 +1,9 @@
-name: judilibre-admin
+name: opendata
 
 services:
   judilibre-admin:
+    build:
+      target: local
     env_file:
       - .env
     ports:
@@ -9,4 +11,4 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./judilibre-admin:/home/node
+      - .:/home/node
