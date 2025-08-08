@@ -90,6 +90,5 @@ USER node
 WORKDIR /home/node
 
 COPY --chown=node:node . .
-RUN npm i
 
 CMD ["npm", "run", "start:watch"]
