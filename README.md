@@ -17,12 +17,13 @@ npm install
 ## Utilisation de l'application
 
 Configurer les variables d'environnement :
+
 - Dupliquer le fichier `.env.example` et le renommer `.env`, adapter les variables d'environnement si besoin
 
 ### Avec Docker
 
 ```bash
-npm run docker:start
+npm run start:docker
 ```
 
 ### Sans Docker
@@ -33,6 +34,6 @@ Vous pouvez également lancer l'application sans utiliser docker avec la command
 npm run start:watch
 ```
 
-
 #### Documentation ops
+
 https://github.com/Cour-de-cassation/Knowledge-base-ops
