@@ -98,6 +98,7 @@ function fromPayloadToDecision(decisionPayload) {
         10: 'prep_avpg',
         11: 'prep_avco',
         12: 'datt_grph',
+        13: 'datt_deci',
       };
       return codes[type] ? [codes[type]] : [];
     }),
