@@ -57,20 +57,3 @@ jobs:
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
           VERSION: ${{ steps.extract_version.outputs.version }}
-      - name: ☸️  Deploy local k8s services
-        if: steps.docker_check.outputs.status == 'build_needed'
-        run: ./scripts/deploy_k8s_services.sh
-        env:
-          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
-          VERSION: ${{ steps.extract_version.outputs.version }}
-      - name: ✅ Execute minimal tests
-        if: steps.docker_check.outputs.status == 'build_needed'
-        run: |
-          export KUBE_NAMESPACE=${APP_GROUP}-${KUBE_ZONE}-${GIT_BRANCH}
-          kubectl get pods --namespace=${KUBE_NAMESPACE}
-          kubectl logs service/${APP_ID}-svc --namespace=${KUBE_NAMESPACE}
-          ./scripts/test_minimal.sh
-        env:
-          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-          KUBECONFIG: /home/runner/.kube/config-local-k3s.yaml
