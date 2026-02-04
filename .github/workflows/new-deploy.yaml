@@ -38,6 +38,6 @@ jobs:
 
       - name: Update Deployment
         run: |
-          kubectl set image deployment/judilibre-admin \
+          kubectl set image deployment/judilibre-admin-deployment \
             judilibre-admin=${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.ref_name }}-${{ github.sha }} \
             -n judilibre-test-sandbox
