@@ -20,6 +20,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          target: production
           push: true
           tags: |
             ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.ref_name }}-latest
