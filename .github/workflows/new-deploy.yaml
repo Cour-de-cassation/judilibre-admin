@@ -22,8 +22,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:latest
-            ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.sha }}
+            ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.ref_name }}-latest
+            ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.ref_name }}-${{ github.sha }}
 
 
   deploy-to-kubernetes:
@@ -39,5 +39,5 @@ jobs:
       - name: Update Deployment
         run: |
           kubectl set image deployment/judilibre-admin \
-            judilibre-admin=${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.sha }} \
+            judilibre-admin=${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ github.ref_name }}-${{ github.sha }} \
             -n judilibre-test-sandbox
