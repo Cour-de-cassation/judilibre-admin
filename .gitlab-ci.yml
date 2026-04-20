@@ -28,6 +28,7 @@ build_and_push:
         --build-arg https_proxy=$HTTPS_PROXY
         -t $DOCKER_IMAGE
         -f Dockerfile
+        --target production
         .
     - docker push $DOCKER_IMAGE
   tags:
