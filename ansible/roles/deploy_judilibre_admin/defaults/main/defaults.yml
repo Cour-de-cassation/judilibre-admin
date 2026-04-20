@@ -1,0 +1,11 @@
+---
+judilibre_namespace: nlp
+judilibre_app_id: pseudo-app
+judilibre_app_port: 8000
+
+ner_url: "http://nlp-api-service.nlp.svc.cluster.local:8081"
+mock_ner: "false"
+ner_source_name: "jurinet"
+
+# Surcharger via -e judliibre_admin_docker_image=... en ligne de commande ou CI
+judliibre_admin_docker_image: ""

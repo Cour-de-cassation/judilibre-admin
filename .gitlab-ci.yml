@@ -1,0 +1,76 @@
+variables:
+  DOCKER_IMAGE: "$CI_REGISTRY/cour-de-cassation/judilibre-admin/judilibre-admin/$CI_COMMIT_BRANCH:latest"
+
+stages:
+  - build
+  - deploy
+
+# ── Build ────────────────────────────────────────────────────────────────────
+
+build_and_push:
+  stage: build
+  image: docker:20.10.22
+  variables:
+    HTTP_PROXY: $HTTP_PROXY_DEV
+    HTTPS_PROXY: $HTTPS_PROXY_DEV
+  script:
+    - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+    # Évite de reconstruire une image déjà existante (ex: re-tag sans changement de code)
+    - |
+      if docker pull "$DOCKER_IMAGE"; then
+        echo "Image $DOCKER_IMAGE déjà présente, build ignoré."
+        exit 0
+      fi
+
+    - docker build
+        --build-arg http_proxy=$HTTP_PROXY
+        --build-arg https_proxy=$HTTPS_PROXY
+        -t $DOCKER_IMAGE
+        -f Dockerfile
+        .
+    - docker push $DOCKER_IMAGE
+  tags:
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" | $CI_COMMIT_BRANCH == "local"'
+
+# ── Deploy (template) ────────────────────────────────────────────────────────
+
+.deploy_template:
+  stage: deploy
+  environment: $ENV
+  image: alpine/ansible:2.16.1
+  script:
+    - mkdir /root/.ssh
+    - cat $SSH_KEY > /root/.ssh/id_rsa
+    - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
+    - chmod 600 /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/known_hosts
+    - ansible-playbook
+        -e judliibre_admin_docker_image=$DOCKER_IMAGE
+        -i ansible/inventory/$ENV.yml
+        ansible/deploy_judilibre_admin.yml
+        --vault-password-file=$ANSIBLE_VAULT_PASS
+  tags:
+    - docker
+  needs:
+    - build_and_push
+
+# ── Deploy jobs ───────────────────────────────────────────────────────────────
+
+deploy_local:
+  variables:
+    ENV: local
+  extends: .deploy_template
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "local"'
+      when: on_success
+
+deploy_dev:
+  variables:
+    ENV: dev
+  extends: .deploy_template
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: on_success
