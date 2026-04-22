@@ -1,5 +1,5 @@
 variables:
-  DOCKER_IMAGE: "$CI_REGISTRY/cour-de-cassation/judilibre-admin/judilibre-admin/$CI_COMMIT_BRANCH:latest"
+  DOCKER_IMAGE: "$CI_REGISTRY/cour-de-cassation/judilibre-admin/$CI_COMMIT_BRANCH:$CI_COMMIT_SHORT_SHA"
 
 stages:
   - build
