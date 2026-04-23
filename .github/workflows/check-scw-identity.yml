@@ -1,0 +1,13 @@
+name: Check SCW Identity
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Who owns this SCW token?
+        env:
+          SCW_TOKEN: ${{ secrets.KUBE_SCW_TOKEN }}
+        run: |
+          curl -s -H "X-Auth-Token: $SCW_TOKEN" \
+            https://api.scaleway.com/iam/v1alpha1/users/me
