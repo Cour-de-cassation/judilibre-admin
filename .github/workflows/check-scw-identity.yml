@@ -8,7 +8,7 @@ jobs:
       - name: Who owns this SCW token?
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
         run: |
-          curl -s -H "X-Auth-Token: $SCW_SECRET_KEY" \
-            "https://api.scaleway.com/account/v3/projects"
+          echo "Access key prefix: ${SCW_ACCESS_KEY:0:10}"
+          curl -s -H "X-Auth-Token: $SCW_ACCESS_KEY" \
+            "https://api.scaleway.com/iam/v1alpha1/api-keys/$SCW_ACCESS_KEY"
