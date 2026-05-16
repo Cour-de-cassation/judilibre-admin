@@ -38,14 +38,18 @@
                     memory: "512Mi"
                     cpu: "500m"
                 livenessProbe:
-                  httpGet:
-                    path: /healthcheck
-                    port: "{{ judilibre_app_port }}"
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_app_port }}/healthcheck'
                   initialDelaySeconds: 10
                   periodSeconds: 30
                 readinessProbe:
-                  httpGet:
-                    path: /healthcheck
-                    port: "{{ judilibre_app_port }}"
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_app_port }}/healthcheck'
                   initialDelaySeconds: 5
                   periodSeconds: 10
