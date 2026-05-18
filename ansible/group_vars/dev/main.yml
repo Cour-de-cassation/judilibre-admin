@@ -1,2 +1,2 @@
 HTTP_PASSWORD: "password"
-ELASTIC_NODE: "http://judilibre-es-http:9200"
+ELASTIC_NODE: "https://judilibre-admin:password@judilibre-es-http:9200"
