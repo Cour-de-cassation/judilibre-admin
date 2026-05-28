@@ -15,7 +15,7 @@ jobs:
       SCW_DATA_ACCESS_KEY: ${{ secrets.SCW_DATA_ACCESS_KEY }}
       SCW_DATA_SECRET_KEY: ${{ secrets.SCW_DATA_SECRET_KEY }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: init deps
         run: ./scripts/init_deps.sh
         env:
