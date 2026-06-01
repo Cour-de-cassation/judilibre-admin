@@ -38,7 +38,7 @@ jobs:
       SCW_KUBE_NODES: 1
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
         run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
@@ -98,7 +98,7 @@ jobs:
       SCW_KUBE_NODES: 3
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
         run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
@@ -159,7 +159,7 @@ jobs:
       SCW_KUBE_NODES: 3
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
         run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
