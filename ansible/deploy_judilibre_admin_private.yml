@@ -3,5 +3,5 @@
   hosts: k3s_master
   gather_facts: true
   roles:
-    - role: deploy_judilibre_admin
+    - role: deploy_judilibre_admin_private
 ...

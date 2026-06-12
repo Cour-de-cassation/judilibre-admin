@@ -1,0 +1,22 @@
+- name: Deploy judilibre-admin on public platform
+  hosts: localhost
+  connection: local
+  collections:
+    - kubernetes.core
+
+  tasks:
+    - name: Mettre à jour l'image du deployment
+      k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: judilibre-admin
+            namespace: judilibre
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: judilibre-admin
+                    image: "{{ judilibre_admin_docker_image }}"

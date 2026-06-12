@@ -1,13 +1,14 @@
 variables:
-  DOCKER_IMAGE: "$CI_REGISTRY/cour-de-cassation/judilibre-admin/$CI_COMMIT_BRANCH:$CI_COMMIT_SHORT_SHA"
+  DOCKER_IMAGE: "judilibre/judilibre-admin:$CI_COMMIT_TAG"
 
 stages:
   - build
-  - deploy
+  - deploy-private
+  - deploy-public
 
-# ── Build ────────────────────────────────────────────────────────────────────
+# BUILD
 
-build_and_push:
+check_if_image_is_on_dockerhub:
   stage: build
   image: docker:20.10.22
   variables:
@@ -16,31 +17,31 @@ build_and_push:
   script:
     - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
 
-    # Évite de reconstruire une image déjà existante (ex: re-tag sans changement de code)
+    # Vérifie si l'image existe sur Docker Hub (12 tentatives, 5s de délai)
     - |
-      if docker pull "$DOCKER_IMAGE"; then
-        echo "Image $DOCKER_IMAGE déjà présente, build ignoré."
-        exit 0
-      fi
-
-    - docker build
-        --build-arg http_proxy=$HTTP_PROXY
-        --build-arg https_proxy=$HTTPS_PROXY
-        -t $DOCKER_IMAGE
-        -f Dockerfile
-        --target production
-        .
-    - docker push $DOCKER_IMAGE
+      MAX_RETRIES=12
+      DELAY=5
+      COUNT=0
+      until docker manifest inspect "$DOCKER_IMAGE" > /dev/null 2>&1; do
+        COUNT=$((COUNT + 1))
+        if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
+          echo "❌ Image $DOCKER_IMAGE introuvable sur Docker Hub après $MAX_RETRIES tentatives."
+          exit 1
+        fi
+        echo "⏳ Tentative $COUNT/$MAX_RETRIES — image absente, nouvel essai dans ${DELAY}s..."
+        sleep $DELAY
+      done
+      echo "✅ Image $DOCKER_IMAGE trouvée sur Docker Hub."
   tags:
     - docker
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "local"'
+    - if: "$CI_COMMIT_TAG"
 
-# ── Deploy (template) ────────────────────────────────────────────────────────
+# DEPLOY PRIVATE
 
-.deploy_template:
-  stage: deploy
-  environment: $ENV
+deploy_dev:
+  stage: deploy-private
+  environment: "dev"
   image: alpine/ansible:2.16.1
   script:
     - mkdir /root/.ssh
@@ -50,28 +51,81 @@ build_and_push:
     - chmod 600 /root/.ssh/known_hosts
     - ansible-playbook
         -e judliibre_admin_docker_image=$DOCKER_IMAGE
-        -i ansible/inventory/$ENV.yml
-        ansible/deploy_judilibre_admin.yml
+        -i ansible/inventory/dev.yml
+        ansible/deploy_judilibre_admin_private.yml
         --vault-password-file=$ANSIBLE_VAULT_PASS
   tags:
     - docker
+  rules:
+    - if: "$CI_COMMIT_TAG"
   needs:
-    - build_and_push
+    - check_if_image_is_on_dockerhub
 
-# ── Deploy jobs ───────────────────────────────────────────────────────────────
 
-deploy_local:
-  variables:
-    ENV: local
-  extends: .deploy_template
+deploy_preprod:
+  stage: deploy-private
+  environment: "preprod"
+  image: alpine/ansible:2.16.1
+  script:
+    - mkdir /root/.ssh
+    - cat $SSH_KEY > /root/.ssh/id_rsa
+    - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
+    - chmod 600 /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/known_hosts
+    - ansible-playbook
+        -e judliibre_admin_docker_image=$DOCKER_IMAGE
+        -i ansible/inventory/preprod.yml
+        ansible/deploy_judilibre_admin_private.yml
+        --vault-password-file=$ANSIBLE_VAULT_PASS
+  tags:
+    - docker
   rules:
-    - if: '$CI_COMMIT_BRANCH == "local"'
-      when: on_success
+    - if: "$CI_COMMIT_TAG"
+      when: manual
+  needs:
+    - deploy_dev
 
-deploy_dev:
-  variables:
-    ENV: dev
-  extends: .deploy_template
+# DEPLOY PUBLIC
+
+deploy_staging:
+  stage: deploy-public
+  environment: "staging"
+  image: alpine/ansible:2.16.1
+  script:
+    - mkdir -p /root/.kube
+    - echo "$KUBECONFIG_STAGING" | base64 -d > /root/.kube/config
+    - chmod 600 /root/.kube/config
+    - ansible-galaxy collection install kubernetes.core
+    - ansible-playbook
+        -e judilibre_admin_docker_image=$DOCKER_IMAGE
+        ansible/deploy_judilibre_admin_kube.yml
+        --vault-password-file=$ANSIBLE_VAULT_PASS
+  tags:
+    - docker
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
-      when: on_success
+    - if: "$CI_COMMIT_TAG"
+      when: manual
+
+  needs:
+    - deploy_preprod
+
+
+# deploy_prod:
+#   stage: deploy-public
+#   environment: "prod"
+#   image: alpine/ansible:2.16.1
+#   script:
+#     - mkdir /root/.ssh
+#     - cat $SSH_KEY > /root/.ssh/id_rsa
+#     - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
+#     - chmod 600 /root/.ssh/id_rsa
+#     - chmod 600 /root/.ssh/known_hosts
+#     - echo ""
+#   tags:
+#     - docker
+#   rules:
+#     - if: "$CI_COMMIT_TAG"
+#       when: manual
+
+#   needs:
+#     - deploy_staging
