@@ -7,6 +7,9 @@
       ansible.builtin.pip:
         name: kubernetes
         state: present
+      environment:
+        http_proxy: "{{ http_proxy_dev }}"
+        https_proxy: "{{ https_proxy_dev }}"
     - name: Mettre à jour l'image du deployment
       kubernetes.core.k8s:
         state: present

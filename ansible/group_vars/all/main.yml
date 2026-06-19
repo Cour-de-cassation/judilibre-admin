@@ -13,3 +13,7 @@ ELASTIC_INDEX: "judilibre_0"
 TRANSACTION_INDEX: "transaction_0"
 APP_ID: "judilibre-admin"
 API_PORT: 8000
+
+
+http_proxy_dev: "{{ vault_dev_http_proxy }}"
+https_proxy_dev: "{{ vault_dev_https_proxy }}"
