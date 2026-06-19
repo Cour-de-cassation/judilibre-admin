@@ -70,8 +70,11 @@ jobs:
       - name: Install Ansible & tools
         run: pip install ansible ansible-lint
 
+      - name: ansible-lint-private
+        run: ansible-lint ansible/roles ansible/deploy_judilibre_admin_private.yml
+      
       - name: ansible-lint
-        run: ansible-lint ansible/roles ansible/deploy_judilibre_admin.yml
+        run: ansible-lint ansible/roles ansible/deploy_judilibre_admin_public.yml
 
       - name: Syntax check
         run: |
@@ -79,5 +82,5 @@ jobs:
             --syntax-check \
             -e docker_image=my-image \
             -i ansible/inventory/local.yml \
-            ansible/deploy_judilibre_admin.yml
+            ansible/deploy_judilibre_admin_private.yml
 
