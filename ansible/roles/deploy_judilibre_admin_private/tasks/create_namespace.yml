@@ -1,6 +1,6 @@
 ---
 - name: Création du namespace {{ judilibre_namespace }}
-  k8s:
+  kubernetes.core.k8s:
     apply: true
     state: present
     verify_ssl: true
