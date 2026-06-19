@@ -38,17 +38,18 @@ jobs:
       SCW_KUBE_NODES: 1
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
+        run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
         id: extract_branch
       - name: init deps
         run: ./scripts/init_deps.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       - name: get version
-        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
+        run: echo "version=$(./scripts/version.sh)" >> $GITHUB_OUTPUT
         id: extract_version
       - name: kube prerequisites
         run: |
@@ -97,17 +98,18 @@ jobs:
       SCW_KUBE_NODES: 3
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
+        run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
         id: extract_branch
       - name: init deps
         run: ./scripts/init_deps.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       - name: get version
-        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
+        run: echo "version=$(./scripts/version.sh)" >> $GITHUB_OUTPUT
         id: extract_version
       - name: kube prerequisites
         run: |
@@ -157,17 +159,18 @@ jobs:
       SCW_KUBE_NODES: 3
       START_TIMEOUT: 240
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v5
       - name: extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
+        run: echo "branch=$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')" >> $GITHUB_OUTPUT
         id: extract_branch
       - name: init deps
         run: ./scripts/init_deps.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       - name: get version
-        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
+        run: echo "version=$(./scripts/version.sh)" >> $GITHUB_OUTPUT
         id: extract_version
       - name: kube prerequisites
         run: |

@@ -7,7 +7,7 @@ export KUBE_SRC=${DEPS_SRC}/k8s
 
 # clone
 if [ ! -d "${SCRIPTS_SRC}" ];then
-    if ! (git clone https://github.com/Cour-de-cassation/${GIT_OPS} > /dev/null 2>&1); then
+    if ! (git clone https://${GIT_TOKEN}@github.com/Cour-de-cassation/${GIT_OPS} > /dev/null 2>&1); then
         echo -e "\e[31m❌ init failed, couldn't clone git ${GIT_OPS} repository \e[0m" && exit 1;
         if [ "${GIT_BRANCH}" == "master" ]; then
             cd ${SCRIPTS_SRC};
