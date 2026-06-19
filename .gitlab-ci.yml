@@ -15,14 +15,15 @@ check_if_image_is_on_dockerhub:
     HTTP_PROXY: $HTTP_PROXY_DEV
     HTTPS_PROXY: $HTTPS_PROXY_DEV
   script:
-    - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    # - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
 
     # Vérifie si l'image existe sur Docker Hub (12 tentatives, 5s de délai)
     - |
       MAX_RETRIES=12
       DELAY=5
       COUNT=0
-      until docker manifest inspect "$DOCKER_IMAGE" > /dev/null 2>&1; do
+      echo Try pulling $DOCKER_IMAGE
+      until docker pull "$DOCKER_IMAGE" > /dev/null 2>&1; do
         COUNT=$((COUNT + 1))
         if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
           echo "❌ Image $DOCKER_IMAGE introuvable sur Docker Hub après $MAX_RETRIES tentatives."

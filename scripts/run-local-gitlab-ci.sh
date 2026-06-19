@@ -8,5 +8,6 @@ gitlab-ci-local --privileged --network gitlab-ci-local-network \
 --variable CI_REGISTRY_USER=test \
 --variable CI_JOB_TOKEN=test \
 --variable CI_COMMIT_BRANCH=local \
+--variable CI_COMMIT_TAG=0.0.1 \
 --variable HTTP_PROXY= \
 --variable HTTPS_PROXY= 
