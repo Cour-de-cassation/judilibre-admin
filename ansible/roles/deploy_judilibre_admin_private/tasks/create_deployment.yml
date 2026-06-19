@@ -24,7 +24,7 @@
           spec:
             containers:
               - name: "{{ judilibre_app_id }}"
-                image: "{{ judliibre_admin_docker_image }}"
+                image: "{{ judilibre_admin_docker_image }}"
                 ports:
                   - containerPort: "{{ judilibre_app_port }}"
                 envFrom:

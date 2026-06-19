@@ -50,7 +50,7 @@ deploy_dev:
     - chmod 600 /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/known_hosts
     - ansible-playbook
-        -e judliibre_admin_docker_image=$DOCKER_IMAGE
+        -e judilibre_admin_docker_image=$DOCKER_IMAGE
         -i ansible/inventory/dev.yml
         ansible/deploy_judilibre_admin_private.yml
         --vault-password-file=$ANSIBLE_VAULT_PASS
@@ -73,7 +73,7 @@ deploy_preprod:
     - chmod 600 /root/.ssh/id_rsa
     - chmod 600 /root/.ssh/known_hosts
     - ansible-playbook
-        -e judliibre_admin_docker_image=$DOCKER_IMAGE
+        -e judilibre_admin_docker_image=$DOCKER_IMAGE
         -i ansible/inventory/preprod.yml
         ansible/deploy_judilibre_admin_private.yml
         --vault-password-file=$ANSIBLE_VAULT_PASS
