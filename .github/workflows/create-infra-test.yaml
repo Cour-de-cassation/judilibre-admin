@@ -1,0 +1,53 @@
+name: Create whole sandbox environment (PRA test)
+
+on:
+  schedule:
+    - cron: "0 7 * * 6"
+  workflow_dispatch:
+
+jobs:
+  create-sbx-infra:
+    name: ☸️ Create dual site infrastructure (sandbox) ☸️
+    runs-on: ubuntu-latest
+    env:
+      ENV_SCW_SBX_PAR1: ${{ secrets.ENV_SCW_SBX_PAR1 }}
+      ENV_SCW_SBX_PAR2: ${{ secrets.ENV_SCW_SBX_PAR2 }}
+      DNS_ROOT: judilibre.fr
+    steps:
+      - uses: actions/checkout@v4
+      - name: extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF} | sed 's|^refs/heads/||;' | sed 's/[^a-zA-Z0-9]/-/g')"
+        id: extract_branch
+      - name: init deps
+        run: ./scripts/init_deps.sh
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+      - name: get version
+        run: echo "##[set-output name=version;]$(./scripts/version.sh)"
+        id: extract_version
+      - name: set random DNS
+        run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
+        id: extract_dns
+      - name: ☸️ create_environment
+        id: create_environment
+        run: |
+          mkdir -p ${HOME}/.kube
+          echo ${ENV_SCW_SBX_PAR1} | sed "s/\.judilibre\.io/-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par1
+          echo ${ENV_SCW_SBX_PAR2} | sed "s/\.judilibre\.io/-${DNS_RAND}.${DNS_ROOT}/g;s/\s\s*/\n/g" > .env-scw-sbx-par2
+          export ENV_FILES=".env-scw-sbx-par1 .env-scw-sbx-par2"
+          ./scripts/create_environment.sh || (echo "Failure logs:" && cat k8s*log && echo "##[set-output name=status;]failure" && exit 1)
+        env:
+          GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          DNS_RAND: ${{ steps.extract_dns.outputs.dns }}
+      - name: 🧹 Clean
+        if: always()
+        run: |
+          curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par1 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par1 | grep KUBECONFIG | envsubst | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
+          curl -s -XDELETE -H "X-Auth-Token: $(grep SCW_KUBE_SECRET_TOKEN .env-scw-sbx-par2 | sed 's/.*=//')" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/$(cat .env-scw-sbx-par2 | grep KUBECONFIG | envsubst | sed 's/.*=//' | xargs cat | grep 'server:' | sed 's|.*//||;s/.api.*//')?with_additional_resources=true || echo
+          rm -f ${ENV_FILES}
+          if [ "${STATUS}" == "failure" ]; then
+            exit 1;
+          fi;
+        env:
+          STATUS: ${{ steps.create_environment.outputs.status }}
