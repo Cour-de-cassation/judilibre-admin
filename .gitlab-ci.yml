@@ -99,7 +99,7 @@ deploy_staging:
     - ansible-galaxy collection install kubernetes.core
     - ansible-playbook
         -e judilibre_admin_docker_image=$DOCKER_IMAGE
-        ansible/deploy_judilibre_admin_kube.yml
+        ansible/deploy_judilibre_admin_public.yml
         --vault-password-file=$ANSIBLE_VAULT_PASS
   tags:
     - docker
