@@ -3,6 +3,10 @@
   connection: local
 
   tasks:
+    - name: Ensure kubernetes python library is installed
+      ansible.builtin.pip:
+        name: kubernetes
+        state: present
     - name: Mettre à jour l'image du deployment
       kubernetes.core.k8s:
         state: present
