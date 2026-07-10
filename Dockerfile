@@ -1,7 +1,7 @@
 #######################
 # Step 1: Base target #
 #######################
-FROM node:20-alpine3.20 AS base
+FROM node:24-alpine3.20 AS base
 ARG http_proxy
 ARG https_proxy
 ARG no_proxy
@@ -35,12 +35,7 @@ USER node
 
 COPY package.json ./
 
-RUN if [ -z "${NPM_VERBOSE}" ]; then\
-      npm install;  \
-    else \
-      npm install --verbose; \
-    fi
-
+RUN npm install --verbose
 VOLUME /${APP_ID}/src
 
 COPY jestconfig.json .eslintrc.json ./
