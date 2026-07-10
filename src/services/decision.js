@@ -10,7 +10,7 @@ async function toPublish(decisions) {
     const transactionItems = indexed.length > 0 ? await toHistory(indexed) : [];
     return fromIndexingToResponse(indexed, notIndexed, transactionItems);
   } catch (e) {
-    console.error(e)
+    console.error(e);
     return fromIndexingToResponse(indexed, notIndexed, []);
   }
 }
@@ -22,7 +22,7 @@ async function toUnpublish(idDecisions) {
     const transactionItems = await toHistory(deleted.map(({ action }) => action));
     return fromDeletingToResponse(items, transactionItems);
   } catch (e) {
-    console.error(e)
+    console.error(e);
     return fromDeletingToResponse(items, []);
   }
 }
@@ -126,7 +126,9 @@ function fromIndexingToResponse(indexedItems, notIndexedItems, loggedItems) {
         : { id: item._id, reason: item.result },
     ),
     transaction_not_historicized: indexedItems.filter((index) => {
-      const loggedItem = loggedItems.find(({ input }) => input === index) ?? { item: { index: { error: "Something wrong with elasticsearch call" }}};
+      const loggedItem = loggedItems.find(({ input }) => input === index) ?? {
+        item: { index: { error: 'Something wrong with elasticsearch call' } },
+      };
       const error = loggedItem.item.index.error;
       if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
       return !!error;
@@ -142,7 +144,9 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       deleted: deletingDecisions[0].deleted,
       reason: deletingDecisions[0].reason,
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
-        const loggedItem = loggedItems.find(({ input }) => input === action) ?? { item: { index: { error: "Something wrong with elasticsearch call" }}};
+        const loggedItem = loggedItems.find(({ input }) => input === action) ?? {
+          item: { index: { error: 'Something wrong with elasticsearch call' } },
+        };
         const error = loggedItem.item.index.error;
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;
@@ -154,7 +158,9 @@ function fromDeletingToResponse(deletingDecisions, loggedItems = []) {
       ...acc,
       [action._id]: { deleted, reason },
       transaction_not_historicized: deletingDecisions.filter(({ action }) => {
-        const loggedItem = loggedItems.find(({ input }) => input === action) ?? { item: { delete: { error: "Something wrong with elasticsearch call" }}};
+        const loggedItem = loggedItems.find(({ input }) => input === action) ?? {
+          item: { delete: { error: 'Something wrong with elasticsearch call' } },
+        };
         const error = loggedItem.item.delete.error;
         if (error) console.error(`${process.env.APP_ID}: Error while historicize decision ${JSON.stringify(error)}`);
         return !!error;

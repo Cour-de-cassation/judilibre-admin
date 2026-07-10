@@ -118,7 +118,7 @@ async function getAdmin(query) {
       }
       response.result = {
         expected: expected,
-        actual: actual.map(_ => _.body),
+        actual: actual.map((_) => _.body),
         error: error,
       };
       break;

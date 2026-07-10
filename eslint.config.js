@@ -14,7 +14,9 @@ module.exports = [
         ...globals.jest,
       },
     },
-    rules: {},
+    rules: {
+      'no-case-declarations': 'warn',
+    },
   },
   eslintPluginPrettierRecommended,
 ];
