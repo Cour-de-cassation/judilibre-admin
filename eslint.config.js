@@ -15,7 +15,7 @@ module.exports = [
       },
     },
     rules: {
-      'no-case-declarations': 'warn',
+      'no-console': 'warn',
     },
   },
   eslintPluginPrettierRecommended,

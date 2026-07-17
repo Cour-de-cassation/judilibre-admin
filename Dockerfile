@@ -18,35 +18,8 @@ RUN if [ ! -z "$http_proxy" ] ; then \
    fi ; \
    [ -z "$npm_registry" ] || npm config set registry=$npm_registry
 
-################################
-# Step 2: "development" target #
-################################
-FROM base AS development
-ARG NPM_FIX
-ARG NPM_VERBOSE
-ARG APP_ID
-ARG API_PORT
-ENV APP_ID=${APP_ID}
-ENV API_PORT=${API_PORT}
-ENV NPM_CONFIG_LOGLEVEL=debug
-
-WORKDIR /home/node/
-USER node
-
-COPY package.json ./
-
-RUN npm install --verbose
-VOLUME /${APP_ID}/src
-
-COPY jestconfig.json .eslintrc.json ./
-
-# Expose the listening port of your app
-EXPOSE ${API_PORT}
-
-CMD ["npm","run", "dev"]
-
 ###############################
-# Step 3: "production" target #
+# Step 2: "production" target #
 ###############################
 FROM base AS production
 ARG NPM_AUDIT_DRY_RUN

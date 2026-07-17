@@ -93,7 +93,7 @@ async function getAdmin(query) {
         response.result = e;
       }
       break;
-    case 'show_template':
+    case 'show_template': {
       let expected = null;
       let actual = {
         body: null,
@@ -122,7 +122,8 @@ async function getAdmin(query) {
         error: error,
       };
       break;
-    case 'show_all_templates':
+    }
+    case 'show_all_templates': {
       let allTemplates = {
         body: null,
       };
@@ -140,6 +141,7 @@ async function getAdmin(query) {
         error: allTemplatesError,
       };
       break;
+    }
     case 'test':
       try {
         const ping = await Elastic.client.ping({});
