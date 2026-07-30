@@ -87,7 +87,7 @@ jobs:
       ELASTIC_MEM_JVM: 6500m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
-      ELASTIC_STORAGE_SIZE: 60Gi
+      ELASTIC_STORAGE_SIZE: 120Gi
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD_PROD }}
       KUBE_INGRESS: nginx
       KUBE_NAMESPACE: judilibre-scw-prod-par1-master
@@ -148,7 +148,7 @@ jobs:
       ELASTIC_MEM_JVM: 6144m
       ELASTIC_SEARCH_PASSWORD: ${{ secrets.ELASTIC_SEARCH_PASSWORD_PROD }}
       ELASTIC_STORAGE_POLICY: DeleteOnScaledownOnly
-      ELASTIC_STORAGE_SIZE: 20Gi
+      ELASTIC_STORAGE_SIZE: 120Gi
       HTTP_PASSWD: ${{ secrets.HTTP_PASSWD_PROD }}
       KUBE_INGRESS: nginx
       KUBE_NAMESPACE: judilibre-scw-prod-par2-master
