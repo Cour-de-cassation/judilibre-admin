@@ -1,0 +1,108 @@
+---
+- name: Création du Deployment {{ judilibre_admin_app_id }}
+  kubernetes.core.k8s:
+    apply: true
+    state: present
+    kubeconfig: "{{ kubeconfig_path | default(omit) }}"
+    validate_certs: "{{ k8s_validate_certs | default(true) }}"
+    # Sans attente, Ansible rend la main dès que l'API a accepté l'objet : un
+    # déploiement qui part en CrashLoopBackOff ou en ImagePullBackOff donnerait
+    # un pipeline vert.
+    wait: true
+    wait_timeout: "{{ judilibre_admin_wait_timeout }}"
+    wait_condition:
+      type: Available
+      status: "True"
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ judilibre_admin_app_id }}-deployment"
+        namespace: "{{ judilibre_admin_namespace }}"
+        labels:
+          app: "{{ judilibre_admin_app_id }}"
+      spec:
+        replicas: "{{ judilibre_admin_replicas | int }}"
+        revisionHistoryLimit: 3
+        # maxUnavailable à 0 : le nouveau pod doit être prêt avant que l'ancien
+        # ne soit arrêté. Sur une seule réplique, c'est ce qui évite la coupure
+        # à chaque déploiement — et ce qui fait échouer le rollout au lieu de
+        # remplacer un pod qui fonctionne par un pod cassé.
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
+        selector:
+          matchLabels:
+            app: "{{ judilibre_admin_app_id }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ judilibre_admin_app_id }}"
+            # Les variables injectées par envFrom sont lues au démarrage du
+            # conteneur : modifier le ConfigMap ou le Secret ne redéploie rien.
+            # Ces empreintes changent avec leur contenu et forcent le rollout.
+            annotations:
+              checksum/config: "{{ judilibre_admin_config | to_json(sort_keys=true) | hash('sha1') }}"
+              checksum/secret: "{{ judilibre_admin_secrets | to_json(sort_keys=true) | hash('sha1') }}"
+          spec:
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: "{{ judilibre_admin_run_as_user | int }}"
+              runAsGroup: "{{ judilibre_admin_run_as_group | int }}"
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - name: "{{ judilibre_admin_app_id }}"
+                image: "{{ app_image }}"
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                      - ALL
+                ports:
+                  - containerPort: "{{ judilibre_admin_app_port | int }}"
+                envFrom:
+                  - configMapRef:
+                      name: "{{ judilibre_admin_app_id }}-config"
+                  - secretRef:
+                      name: "{{ judilibre_admin_app_id }}-secret"
+                resources:
+                  requests:
+                    memory: "{{ judilibre_admin_memory_request }}"
+                    cpu: "{{ judilibre_admin_cpu_request }}"
+                  limits:
+                    memory: "{{ judilibre_admin_memory_limit }}"
+                    cpu: "{{ judilibre_admin_cpu_limit }}"
+                # Attention : /healthcheck répond 200 même lorsque
+                # Elasticsearch est injoignable. Ces sondes ne valident donc
+                # aujourd'hui que la réponse du processus Node, pas le bon
+                # fonctionnement de l'application.
+                startupProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_admin_app_port }}/healthcheck'
+                  periodSeconds: 5
+                  timeoutSeconds: 5
+                  failureThreshold: 12
+                livenessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_admin_app_port }}/healthcheck'
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+                readinessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_admin_app_port }}/healthcheck'
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 3

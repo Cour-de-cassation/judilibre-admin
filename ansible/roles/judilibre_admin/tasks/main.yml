@@ -2,6 +2,9 @@
 - name: Deploy namespace
   ansible.builtin.import_tasks: create_namespace.yml
 
+- name: Deploy configmap
+  ansible.builtin.import_tasks: create_configmap.yml
+
 - name: Deploy secret
   ansible.builtin.import_tasks: create_secret.yml
 

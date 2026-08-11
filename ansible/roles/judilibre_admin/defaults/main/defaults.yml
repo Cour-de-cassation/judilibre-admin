@@ -1,0 +1,53 @@
+---
+# Valeurs de repli du rôle. Un environnement ne redéfinit que ce qui lui est
+# propre (cf. group_vars/<environnement>/main.yml) : tout le reste vient d'ici.
+
+# ── Identité ──────────────────────────────────────────────────────────────────
+judilibre_admin_namespace: judilibre
+judilibre_admin_app_id: judilibre-admin
+judilibre_admin_app_port: 8000
+
+# ── Index Elasticsearch ───────────────────────────────────────────────────────
+judilibre_admin_elastic_index: judilibre_0
+judilibre_admin_transaction_index: transaction_0
+
+# ── Dimensionnement ───────────────────────────────────────────────────────────
+judilibre_admin_replicas: 1
+judilibre_admin_cpu_request: 200m
+judilibre_admin_cpu_limit: 500m
+judilibre_admin_memory_request: 512Mi
+judilibre_admin_memory_limit: 1Gi
+
+# Plafond du tas V8. Node dimensionne son "old space" à environ 50 % de la
+# limite mémoire du conteneur ; on le fixe explicitement à ~75 % de la limite,
+# le reste servant à la mémoire hors tas. L'application accepte des corps JSON
+# de 50 Mo, dont la désérialisation occupe plusieurs fois leur taille : c'est ce
+# couple (limite mémoire, plafond de tas) qu'il faut réviser si un import
+# volumineux échoue sur "JavaScript heap out of memory".
+judilibre_admin_node_max_old_space_mb: 768
+
+# ── Déploiement ───────────────────────────────────────────────────────────────
+# L'image du Dockerfile déclare `USER node`. Kubernetes ne sait pas vérifier
+# qu'un utilisateur désigné par son nom est non-root : sans UID numérique
+# explicite, `runAsNonRoot: true` fait échouer le démarrage du pod.
+judilibre_admin_run_as_user: 1000
+judilibre_admin_run_as_group: 1000
+
+# Délai maximum accordé au Deployment pour devenir disponible.
+judilibre_admin_wait_timeout: 180
+
+# ── Contenu injecté dans le conteneur ─────────────────────────────────────────
+# Configuration non sensible : ConfigMap. Les valeurs d'un ConfigMap doivent
+# être des chaînes côté API Kubernetes, d'où les `| string`.
+judilibre_admin_config:
+  APP_ID: "{{ judilibre_admin_app_id }}"
+  API_PORT: "{{ judilibre_admin_app_port | string }}"
+  ELASTIC_INDEX: "{{ judilibre_admin_elastic_index }}"
+  TRANSACTION_INDEX: "{{ judilibre_admin_transaction_index }}"
+  NODE_OPTIONS: "--max-old-space-size={{ judilibre_admin_node_max_old_space_mb }}"
+
+# Secrets : Secret. Définis par environnement, sans valeur de repli — un
+# environnement qui les oublie doit échouer, pas hériter d'un mot de passe.
+judilibre_admin_secrets:
+  HTTP_PASSWD: "{{ judilibre_admin_http_password }}"
+  ELASTIC_NODE: "{{ judilibre_admin_elastic_node }}"

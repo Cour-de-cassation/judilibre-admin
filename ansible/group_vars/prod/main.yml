@@ -1,0 +1,14 @@
+---
+# Les valeurs sensibles vivent dans group_vars/prod/vault.yml, chiffré avec
+# Ansible Vault. Ce fichier doit y définir :
+#   vault_judilibre_admin_http_password
+#   vault_judilibre_admin_elastic_node
+judilibre_admin_http_password: "{{ vault_judilibre_admin_http_password }}"
+judilibre_admin_elastic_node: "{{ vault_judilibre_admin_elastic_node }}"
+
+# Le dimensionnement vient des défauts du rôle
+# (ansible/roles/judilibre_admin/defaults/). Le redéfinir ici si la production
+# interne doit être dimensionnée différemment, par exemple :
+#   judilibre_admin_replicas: 2
+#   judilibre_admin_memory_limit: 2Gi
+#   judilibre_admin_node_max_old_space_mb: 1536

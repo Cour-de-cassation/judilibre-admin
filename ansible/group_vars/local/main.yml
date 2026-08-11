@@ -1,2 +1,3 @@
-HTTP_PASSWORD: "password"
-ELASTIC_NODE: "http://localhost:9200"
+---
+judilibre_admin_http_password: "password"
+judilibre_admin_elastic_node: "http://localhost:9200"

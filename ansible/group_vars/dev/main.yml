@@ -1,2 +1,7 @@
-HTTP_PASSWORD: "password"
-ELASTIC_NODE: "https://judilibre-admin:password@judilibre-es-http:9200"
+---
+# Les valeurs sensibles vivent dans group_vars/dev/vault.yml, chiffré avec
+# Ansible Vault. Ce fichier doit y définir :
+#   vault_judilibre_admin_http_password
+#   vault_judilibre_admin_elastic_node
+judilibre_admin_http_password: "{{ vault_judilibre_admin_http_password }}"
+judilibre_admin_elastic_node: "{{ vault_judilibre_admin_elastic_node }}"

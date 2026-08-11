@@ -1,95 +1,60 @@
+# Template de .gitlab-ci.yml qui provient d'ops-automation
+include:
+  - project: 'cour-de-cassation/ops-automation'
+    file: 'template/gitlab-ci-template.yml'
+    ref: 'master'
+
 variables:
-  DOCKER_IMAGE: "judilibre/judilibre-admin:$CI_COMMIT_TAG"
+  # Le dernier étage du Dockerfile est "local" (développement), et Docker prend
+  # le dernier étage comme cible par défaut : il faut donc cibler explicitement
+  # l'étage de production.
+  DOCKER_BUILD_ARGS: '--target=production'
 
-stages:
-  - build
-  - deploy-private
-  - deploy-public
+  # Image de la plateforme publique, construite sur Docker Hub par le workflow
+  # GitHub tag.yml (cf. bloc "plateforme publique" plus bas).
+  # Ne pas nommer cette variable DOCKER_IMAGE : ce nom est déjà utilisé par le
+  # template pour désigner l'image du runner Docker.
+  PUBLIC_IMAGE: "judilibre/judilibre-admin:$CI_COMMIT_TAG"
 
-# BUILD
+# ──────────────────────────────────────────────────────────────────────────────
+# Plateforme publique (Scaleway) — fonctionnement inchangé
+#
+# Le cluster Scaleway ne peut pas atteindre le registry GitLab interne : il tire
+# son image depuis Docker Hub. Ces deux jobs restent donc sur leur
+# fonctionnement d'origine, en marge des jobs de build et de déploiement privés
+# fournis par le template.
+# ──────────────────────────────────────────────────────────────────────────────
 
 check_if_image_is_on_dockerhub:
-  stage: build
+  stage: build_push
   image: docker:20.10.22
   variables:
     HTTP_PROXY: $HTTP_PROXY_DEV
     HTTPS_PROXY: $HTTPS_PROXY_DEV
   script:
-    # - echo $CI_JOB_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-
     # Vérifie si l'image existe sur Docker Hub (12 tentatives, 5s de délai)
     - |
       MAX_RETRIES=12
       DELAY=5
       COUNT=0
-      echo Try pulling $DOCKER_IMAGE
-      until docker pull "$DOCKER_IMAGE" > /dev/null 2>&1; do
+      echo Try pulling $PUBLIC_IMAGE
+      until docker pull "$PUBLIC_IMAGE" > /dev/null 2>&1; do
         COUNT=$((COUNT + 1))
         if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
-          echo "❌ Image $DOCKER_IMAGE introuvable sur Docker Hub après $MAX_RETRIES tentatives."
+          echo "❌ Image $PUBLIC_IMAGE introuvable sur Docker Hub après $MAX_RETRIES tentatives."
           exit 1
         fi
         echo "⏳ Tentative $COUNT/$MAX_RETRIES — image absente, nouvel essai dans ${DELAY}s..."
         sleep $DELAY
       done
-      echo "✅ Image $DOCKER_IMAGE trouvée sur Docker Hub."
+      echo "✅ Image $PUBLIC_IMAGE trouvée sur Docker Hub."
   tags:
     - docker
   rules:
     - if: "$CI_COMMIT_TAG"
-
-# DEPLOY PRIVATE
-
-deploy_dev:
-  stage: deploy-private
-  environment: "dev"
-  image: alpine/ansible:2.16.1
-  script:
-    - mkdir /root/.ssh
-    - cat $SSH_KEY > /root/.ssh/id_rsa
-    - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
-    - chmod 600 /root/.ssh/id_rsa
-    - chmod 600 /root/.ssh/known_hosts
-    - ansible-playbook
-        -e judilibre_admin_docker_image=$DOCKER_IMAGE
-        -i ansible/inventory/dev.yml
-        ansible/deploy_judilibre_admin_private.yml
-        --vault-password-file=$ANSIBLE_VAULT_PASS
-  tags:
-    - docker
-  rules:
-    - if: "$CI_COMMIT_TAG"
-  needs:
-    - check_if_image_is_on_dockerhub
-
-
-deploy_preprod:
-  stage: deploy-private
-  environment: "preprod"
-  image: alpine/ansible:2.16.1
-  script:
-    - mkdir /root/.ssh
-    - cat $SSH_KEY > /root/.ssh/id_rsa
-    - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
-    - chmod 600 /root/.ssh/id_rsa
-    - chmod 600 /root/.ssh/known_hosts
-    - ansible-playbook
-        -e judilibre_admin_docker_image=$DOCKER_IMAGE
-        -i ansible/inventory/preprod.yml
-        ansible/deploy_judilibre_admin_private.yml
-        --vault-password-file=$ANSIBLE_VAULT_PASS
-  tags:
-    - docker
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      when: manual
-  needs:
-    - deploy_dev
-
-# DEPLOY PUBLIC
 
 deploy_staging:
-  stage: deploy-public
+  stage: deploy
   environment: "staging"
   image: alpine/ansible:2.16.1
   script:
@@ -98,7 +63,7 @@ deploy_staging:
     - chmod 600 /root/.kube/config
     - ansible-galaxy collection install kubernetes.core
     - ansible-playbook
-        -e judilibre_admin_docker_image=$DOCKER_IMAGE
+        -e judilibre_admin_docker_image=$PUBLIC_IMAGE
         ansible/deploy_judilibre_admin_public.yml
         --vault-password-file=$ANSIBLE_VAULT_PASS
   tags:
@@ -106,27 +71,24 @@ deploy_staging:
   rules:
     - if: "$CI_COMMIT_TAG"
       when: manual
-
   needs:
+    - check_if_image_is_on_dockerhub
     - deploy_preprod
 
-
-# deploy_prod:
-#   stage: deploy-public
+# Déploiement de la production publique, à écrire.
+# Ne pas le nommer deploy_prod : ce nom est celui du job de production privée
+# fourni par le template, qu'il écraserait silencieusement.
+#
+# deploy_prod_public:
+#   stage: deploy
 #   environment: "prod"
 #   image: alpine/ansible:2.16.1
 #   script:
-#     - mkdir /root/.ssh
-#     - cat $SSH_KEY > /root/.ssh/id_rsa
-#     - cat $KNOWN_HOSTS > /root/.ssh/known_hosts
-#     - chmod 600 /root/.ssh/id_rsa
-#     - chmod 600 /root/.ssh/known_hosts
 #     - echo ""
 #   tags:
 #     - docker
 #   rules:
 #     - if: "$CI_COMMIT_TAG"
 #       when: manual
-
 #   needs:
 #     - deploy_staging
