@@ -10,136 +10,55 @@ variables:
   # l'étage de production.
   DOCKER_BUILD_ARGS: '--target=production'
 
-  # Image de la plateforme publique, construite sur Docker Hub par le workflow
-  # GitHub tag.yml (cf. bloc "plateforme publique" plus bas).
-  # Ne pas nommer cette variable DOCKER_IMAGE : ce nom est déjà utilisé par le
-  # template pour désigner l'image du runner Docker.
-  PUBLIC_IMAGE: "judilibre/judilibre-admin:$CI_COMMIT_TAG"
-
 # ──────────────────────────────────────────────────────────────────────────────
-# Plateforme publique (Scaleway) — fonctionnement inchangé
+# Production publique (Scaleway) — volontairement absente de ce fichier
 #
-# Le cluster Scaleway ne peut pas atteindre le registry GitLab interne : il tire
-# son image depuis Docker Hub. Ces deux jobs restent donc sur leur
-# fonctionnement d'origine, en marge des jobs de build et de déploiement privés
-# fournis par le template.
+# Mesuré le 12/08/2026. Scaleway n'expose son plan de contrôle Kubernetes que
+# sur le port 6443, et deux portes s'y opposent depuis le réseau interne :
+#
+#   1. Notre propre Squid (10.227.10.194:3128) refuse le CONNECT vers 6443 —
+#      403 ERR_ACCESS_DENIED, journalisé en TCP_DENIED/HIER_NONE, donc décidé
+#      localement sans consulter le parent. C'est la règle Ubuntu par défaut
+#      http_access deny CONNECT !SSL_ports. Celle-là, on saurait la lever.
+#
+#   2. Le proxy du RIE (100.78.184.201:8080), lui, autorise le port : il résout
+#      les noms et tente les connexions. Vers le plan de contrôle Kapsule sur
+#      6443, il attend son propre délai puis rend un 502 au bout de 37 secondes.
+#      Il a donc essayé, et n'a pas pu joindre la cible. Or ce même point de
+#      terminaison accorde une poignée de main TLS en moins d'une seconde depuis
+#      l'Internet ouvert : la cible est vivante, c'est le chemin qui manque.
+#
+# La seconde porte n'est donc pas une règle de proxy mais un filtrage de sortie,
+# au-delà du RIE. Elle n'est pas la nôtre, et elle suffit à condamner la voie.
+#
+# Aucun job GitLab ne peut donc piloter ces clusters. Le sens inverse est tout
+# aussi fermé : un agent installé dans le cluster n'aurait aucune route vers ce
+# GitLab, qui vit en 10.227.10.197. Les déploiements publics restent donc sur
+# GitHub Actions, dont les runners ont une sortie libre.
+#
+# Deux jobs ont été retirés le 12/08/2026 à la lumière de ce constat :
+#
+#   - deploy_staging, qui visait un cluster Scaleway depuis un runner interne.
+#     Il n'a jamais pu aboutir et ne le pourrait pas, quel que soit
+#     l'environnement visé — le mur des 6443 vaut pour tous les plans de
+#     contrôle Kapsule. Un job qui ne peut pas réussir coûte plus cher qu'un job
+#     absent : quelqu'un finit par le lancer et par chercher pourquoi il expire.
+#
+#   - check_if_image_is_on_dockerhub, qui n'existait que pour le précéder. La
+#     chaîne privée construit sa propre image dans le registry GitLab interne et
+#     n'a que faire de celle de Docker Hub.
+#
+# La variable PUBLIC_IMAGE est partie avec eux. L'historique Git les conserve :
+# si le flux s'ouvre un jour, un git revert suffit à les ramener.
+#
+# Pour rouvrir la question, il faudrait DEUX ouvertures, dans cet ordre :
+#   1. un flux sortant vers 163.172.133.65:6443, plus généralement vers les
+#      plans de contrôle *.api.k8s.fr-par.scw.cloud. C'est une règle de
+#      pare-feu, pas une ACL de proxy — le RIE, lui, laisse déjà passer la
+#      demande. Demande bloquante, et hors de notre main ;
+#   2. chez nous, dans le rôle installer_proxy_externe : étendre les ACL
+#      Safe_ports et SSL_ports au port 6443, en le restreignant à ce domaine.
+#      Attention, ce rôle lance aussi un apt upgrade et réécrit le netplan de la
+#      VM du proxy — il ne se rejoue pas à la légère, et il ne recharge jamais
+#      Squid faute de handler.
 # ──────────────────────────────────────────────────────────────────────────────
-
-check_if_image_is_on_dockerhub:
-  stage: build_push
-  image: docker:20.10.22
-  variables:
-    HTTP_PROXY: $HTTP_PROXY_DEV
-    HTTPS_PROXY: $HTTPS_PROXY_DEV
-  script:
-    # Vérifie si l'image existe sur Docker Hub (12 tentatives, 5s de délai)
-    - |
-      MAX_RETRIES=12
-      DELAY=5
-      COUNT=0
-      echo Try pulling $PUBLIC_IMAGE
-      until docker pull "$PUBLIC_IMAGE" > /dev/null 2>&1; do
-        COUNT=$((COUNT + 1))
-        if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
-          echo "❌ Image $PUBLIC_IMAGE introuvable sur Docker Hub après $MAX_RETRIES tentatives."
-          exit 1
-        fi
-        echo "⏳ Tentative $COUNT/$MAX_RETRIES — image absente, nouvel essai dans ${DELAY}s..."
-        sleep $DELAY
-      done
-      echo "✅ Image $PUBLIC_IMAGE trouvée sur Docker Hub."
-  tags:
-    - docker
-  rules:
-    - if: "$CI_COMMIT_TAG"
-
-deploy_staging:
-  stage: deploy
-  environment: "staging"
-  image: alpine/ansible:2.16.1
-  script:
-    - mkdir -p /root/.kube
-    - echo "$KUBECONFIG_STAGING" | base64 -d > /root/.kube/config
-    - chmod 600 /root/.kube/config
-    - ansible-galaxy collection install kubernetes.core
-    - ansible-playbook
-        -e judilibre_admin_docker_image=$PUBLIC_IMAGE
-        ansible/deploy_judilibre_admin_public.yml
-        --vault-password-file=$ANSIBLE_VAULT_PASS
-  tags:
-    - docker
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      when: manual
-  needs:
-    - check_if_image_is_on_dockerhub
-    - deploy_preprod
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Sonde temporaire — les runners internes atteignent-ils Scaleway ?
-#
-# Préalable à toute reprise des déploiements publics depuis GitLab : les runners
-# sont sur le réseau Justice, et rien ne prouve aujourd'hui que l'API Kubernetes
-# de Scaleway leur soit accessible. Ce job ne déploie rien et ne lit aucun
-# secret d'authentification — il mesure seulement la joignabilité.
-#
-# Les deux tentatives, directe puis par le proxy, disent laquelle des deux voies
-# emprunter dans les vrais jobs. N'importe quel code HTTP prouve que le flux
-# passe : l'API répond 401 ou 403 sans jeton, ce qui suffit. Seul un délai
-# dépassé signale un flux fermé.
-#
-# Variable requise : KUBE_SCW_URL, l'URL du plan de contrôle du cluster visé
-# (de la forme https://<uuid>.api.fr-par.scw.cloud:6443).
-#
-# À supprimer une fois la question tranchée.
-# ──────────────────────────────────────────────────────────────────────────────
-
-probe_scw_api:
-  stage: deploy
-  # Image déjà utilisée par tous les jobs de déploiement du template, donc
-  # présente dans le cache du runner : la sonde ne dépend ni d'un tirage
-  # d'image ni d'une installation de paquet, deux flux qu'elle est justement
-  # censée ne pas présupposer. Python est fourni par l'image.
-  image: ${ANSIBLE_IMAGE}
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - |
-      python3 - <<'PY'
-      import os, ssl, time, urllib.request, urllib.error
-
-      url = os.environ.get("KUBE_SCW_URL", "").rstrip("/")
-      if not url:
-          raise SystemExit("KUBE_SCW_URL n'est pas definie -- creer la variable CI avant de relancer.")
-
-      # Le certificat n'est pas verifie : on mesure la joignabilite du reseau,
-      # pas la chaine de confiance. L'autorite vit dans KUBE_SCW_CA, que cette
-      # sonde n'a deliberement pas besoin de lire.
-      ctx = ssl.create_default_context()
-      ctx.check_hostname = False
-      ctx.verify_mode = ssl.CERT_NONE
-
-      def essai(libelle, proxy):
-          # ProxyHandler({}) neutralise aussi les variables d'environnement,
-          # ce qui rend le test direct reellement direct.
-          handlers = [urllib.request.ProxyHandler({"https": proxy} if proxy else {}),
-                      urllib.request.HTTPSHandler(context=ctx)]
-          debut = time.time()
-          try:
-              reponse = urllib.request.build_opener(*handlers).open(url + "/version", timeout=15)
-              print(f"   {libelle} : HTTP {reponse.status} en {time.time() - debut:.1f}s -- le flux passe")
-          except urllib.error.HTTPError as err:
-              # 401 ou 403 sans jeton : l'API repond, donc le reseau est ouvert.
-              print(f"   {libelle} : HTTP {err.code} en {time.time() - debut:.1f}s -- le flux passe")
-          except Exception as err:
-              print(f"   {libelle} : echec apres {time.time() - debut:.1f}s -- {type(err).__name__}: {err}")
-
-      print("Cible :", url)
-      essai("direct      ", None)
-      essai("via le proxy", os.environ.get("HTTPS_PROXY_DEV"))
-      PY
-  tags:
-    - docker
-  rules:
-    - when: manual
-      allow_failure: true
