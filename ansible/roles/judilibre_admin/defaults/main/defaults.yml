@@ -36,6 +36,71 @@ judilibre_admin_run_as_group: 1000
 # Délai maximum accordé au Deployment pour devenir disponible.
 judilibre_admin_wait_timeout: 180
 
+# ── Périmètre du rôle ─────────────────────────────────────────────────────────
+# Sur les clusters privés, le rôle est la source de vérité : il crée tout.
+#
+# Sur la plateforme publique, le namespace, le Service, l'Ingress, les
+# certificats et les Secrets préexistent — posés par judilibre-ops, et pour
+# certains inséparables du cluster. Le rôle n'y gère que le Deployment. Réécrire
+# des objets vivants dont on n'est pas la source de vérité est le meilleur moyen
+# de casser une production un mardi soir.
+judilibre_admin_manage_namespace: true
+judilibre_admin_manage_config: true
+judilibre_admin_manage_service: true
+
+# ── Injection de configuration ────────────────────────────────────────────────
+# En privé : un ConfigMap et un Secret, injectés en bloc par envFrom.
+#
+# En public : les valeurs viennent de Secrets préexistants, référencés clé par
+# clé. D'où cette liste, ajoutée telle quelle aux variables du conteneur. Une
+# liste vide est un no-op parfaitement valide côté API Kubernetes, ce qui évite
+# tout rendu conditionnel dans le manifeste.
+judilibre_admin_extra_env: []
+
+# Volumes supplémentaires. La plateforme publique monte l'autorité de
+# certification d'Elasticsearch, dont le chemin est passé par ELASTIC_CERT.
+judilibre_admin_extra_volumes: []
+judilibre_admin_extra_volume_mounts: []
+
+# Racine du conteneur en lecture seule. Vrai sur la plateforme publique, où
+# c'est déjà le cas aujourd'hui — le désactiver y serait une régression. Laissé
+# à false en privé tant que ce n'y est pas vérifié : l'activer sans essai
+# casserait toute écriture temporaire de l'application.
+judilibre_admin_read_only_root_fs: false
+
+# Construits ici plutôt que dans le manifeste : une expression unique se lit
+# mieux qu'un bloc `when` au milieu d'une définition Kubernetes.
+judilibre_admin_env_from: >-
+  {{ [{'configMapRef': {'name': judilibre_admin_app_id ~ '-config'}},
+      {'secretRef': {'name': judilibre_admin_app_id ~ '-secret'}}]
+     if judilibre_admin_manage_config else [] }}
+
+# Les empreintes ne valent que si le rôle gère lui-même le ConfigMap et le
+# Secret. Ailleurs, elles porteraient sur des variables qui n'existent pas.
+judilibre_admin_pod_annotations: >-
+  {{ {'checksum/config': judilibre_admin_config | to_json(sort_keys=true) | hash('sha1'),
+      'checksum/secret': judilibre_admin_secrets | to_json(sort_keys=true) | hash('sha1')}
+     if judilibre_admin_manage_config else {} }}
+
+# Demandes et limites du conteneur. Regroupées en une variable parce que la
+# plateforme publique n'en déclare aucune aujourd'hui : lui en imposer sans
+# poser NODE_OPTIONS en même temps l'exposerait à des OOMKills — V8 dimensionne
+# son tas d'après la limite du conteneur. Un dict vide se rend en `resources: {}`,
+# que l'API accepte sans rien appliquer. À revoir en même temps que NODE_OPTIONS.
+judilibre_admin_resources:
+  requests:
+    memory: "{{ judilibre_admin_memory_request }}"
+    cpu: "{{ judilibre_admin_cpu_request }}"
+  limits:
+    memory: "{{ judilibre_admin_memory_limit }}"
+    cpu: "{{ judilibre_admin_cpu_limit }}"
+
+# ── Service ───────────────────────────────────────────────────────────────────
+# Le nom et le port sont variables : la plateforme publique expose un Service
+# nommé <app>-svc en port 80, et son Ingress pointe dessus par ce nom.
+judilibre_admin_service_name: "{{ judilibre_admin_app_id }}-service"
+judilibre_admin_service_port: "{{ judilibre_admin_app_port }}"
+
 # ── Contenu injecté dans le conteneur ─────────────────────────────────────────
 # Configuration non sensible : ConfigMap. Les valeurs d'un ConfigMap doivent
 # être des chaînes côté API Kubernetes, d'où les `| string`.

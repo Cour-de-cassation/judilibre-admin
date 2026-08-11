@@ -1,0 +1,4 @@
+---
+# Cluster scw-prod-par2 — production, second site — déployé après par1.
+# Exposé sur admin.prod-par2.judilibre.io.
+judilibre_admin_namespace: judilibre-scw-prod-par2-master

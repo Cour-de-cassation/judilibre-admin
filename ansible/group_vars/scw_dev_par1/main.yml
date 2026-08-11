@@ -1,0 +1,4 @@
+---
+# Cluster scw-dev-par1 — la recette publique, alimentée par la preprod privée.
+# Exposé sur admin.dev-par1.judilibre.io.
+judilibre_admin_namespace: judilibre-scw-dev-par1-dev

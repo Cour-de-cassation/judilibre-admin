@@ -1,0 +1,71 @@
+---
+# Réglages communs aux trois clusters publics Scaleway.
+# Les valeurs propres à chaque cluster vivent dans group_vars/scw_<zone>/.
+
+# group_vars/all impose un interpréteur situé dans le venv du compte `ops` des
+# VM privées. Il n'existe pas sur un runner GitHub, où ce playbook s'exécute en
+# local : on reprend celui d'ansible-playbook lui-même.
+ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+# ── Périmètre ─────────────────────────────────────────────────────────────────
+# Sur ces clusters, le rôle ne gère QUE le Deployment. Le namespace, le Service
+# (judilibre-admin-svc, visé nommément par l'Ingress), l'Ingress lui-même, les
+# certificats ACME et les deux Secrets sont posés par judilibre-ops. Les
+# réécrire depuis ici ferait de ce dépôt une seconde source de vérité pour des
+# objets vivants, ce qui est le meilleur moyen de casser une production.
+judilibre_admin_manage_namespace: false
+judilibre_admin_manage_config: false
+judilibre_admin_manage_service: false
+
+# ── Conteneur ─────────────────────────────────────────────────────────────────
+# 8080 ici, contre 8000 en privé : c'est l'API_PORT des workflows historiques.
+judilibre_admin_app_port: 8080
+
+# Déjà le cas aujourd'hui sur ces clusters — le désactiver serait une régression.
+judilibre_admin_read_only_root_fs: true
+
+# Aucune demande ni limite : c'est l'état actuel de ces Deployments. En poser
+# sans fixer NODE_OPTIONS en même temps exposerait la production à des OOMKills,
+# V8 dimensionnant son tas d'après la limite du conteneur. À traiter comme un
+# sujet à part entière, pas comme un effet de bord de ce portage.
+judilibre_admin_resources: {}
+
+# ── Configuration injectée ────────────────────────────────────────────────────
+# Reprise à l'identique de k8s/deployment.yaml de judilibre-ops. Les deux
+# Secrets sont créés par deploy_k8s_services.sh et ne sont pas gérés ici.
+#
+# À noter : sur cette plateforme, elastic-node contient les identifiants du
+# SUPERUTILISATEUR `elastic`, contrairement au privé qui utilise un compte
+# restreint. Écart de sécurité propre au public, à traiter séparément.
+judilibre_admin_es_auth_secret: "{{ judilibre_admin_app_id }}-es-path-with-auth"
+judilibre_admin_http_passwd_secret: "{{ judilibre_admin_app_id }}-http-passwd"
+judilibre_admin_es_ca_secret: judilibre-es-http-certs-public
+
+judilibre_admin_extra_env:
+  - name: ELASTIC_NODE
+    valueFrom:
+      secretKeyRef:
+        name: "{{ judilibre_admin_es_auth_secret }}"
+        key: elastic-node
+  - name: HTTP_PASSWD
+    valueFrom:
+      secretKeyRef:
+        name: "{{ judilibre_admin_http_passwd_secret }}"
+        key: http-passwd
+  - name: ELASTIC_INDEX
+    value: "{{ judilibre_admin_elastic_index }}"
+  - name: TRANSACTION_INDEX
+    value: "{{ judilibre_admin_transaction_index }}"
+  - name: ELASTIC_CERT
+    value: /etc/elasticsearch/certificates/ca.crt
+
+# L'autorité de certification d'Elasticsearch, générée par l'opérateur ECK.
+judilibre_admin_extra_volumes:
+  - name: cert-ca
+    secret:
+      secretName: "{{ judilibre_admin_es_ca_secret }}"
+
+judilibre_admin_extra_volume_mounts:
+  - name: cert-ca
+    mountPath: /etc/elasticsearch/certificates
+    readOnly: true

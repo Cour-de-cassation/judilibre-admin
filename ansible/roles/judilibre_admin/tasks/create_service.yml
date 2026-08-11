@@ -9,7 +9,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: "{{ judilibre_admin_app_id }}-service"
+        name: "{{ judilibre_admin_service_name }}"
         namespace: "{{ judilibre_admin_namespace }}"
         labels:
           app: "{{ judilibre_admin_app_id }}"
@@ -20,5 +20,7 @@
         ports:
           - name: http
             protocol: TCP
-            port: "{{ judilibre_admin_app_port | int }}"
+            # Le port exposé et le port du conteneur peuvent différer : la
+            # plateforme publique publie sur 80 et vise 8080.
+            port: "{{ judilibre_admin_service_port | int }}"
             targetPort: "{{ judilibre_admin_app_port | int }}"

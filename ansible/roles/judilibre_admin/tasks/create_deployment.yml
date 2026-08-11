@@ -49,9 +49,8 @@
             # Les variables injectées par envFrom sont lues au démarrage du
             # conteneur : modifier le ConfigMap ou le Secret ne redéploie rien.
             # Ces empreintes changent avec leur contenu et forcent le rollout.
-            annotations:
-              checksum/config: "{{ judilibre_admin_config | to_json(sort_keys=true) | hash('sha1') }}"
-              checksum/secret: "{{ judilibre_admin_secrets | to_json(sort_keys=true) | hash('sha1') }}"
+            # Vide là où le rôle ne gère pas ces deux objets.
+            annotations: "{{ judilibre_admin_pod_annotations }}"
           spec:
             securityContext:
               runAsNonRoot: true
@@ -64,23 +63,19 @@
                 image: "{{ app_image }}"
                 securityContext:
                   allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: "{{ judilibre_admin_read_only_root_fs | bool }}"
                   capabilities:
                     drop:
                       - ALL
                 ports:
                   - containerPort: "{{ judilibre_admin_app_port | int }}"
-                envFrom:
-                  - configMapRef:
-                      name: "{{ judilibre_admin_app_id }}-config"
-                  - secretRef:
-                      name: "{{ judilibre_admin_app_id }}-secret"
-                resources:
-                  requests:
-                    memory: "{{ judilibre_admin_memory_request }}"
-                    cpu: "{{ judilibre_admin_cpu_request }}"
-                  limits:
-                    memory: "{{ judilibre_admin_memory_limit }}"
-                    cpu: "{{ judilibre_admin_cpu_limit }}"
+                # En privé, la configuration arrive en bloc depuis le ConfigMap
+                # et le Secret du rôle. En public, elle vient de Secrets
+                # préexistants référencés clé par clé, via extra_env. Les deux
+                # listes sont vides quand elles ne s'appliquent pas.
+                envFrom: "{{ judilibre_admin_env_from }}"
+                env: "{{ judilibre_admin_extra_env }}"
+                resources: "{{ judilibre_admin_resources }}"
                 # Attention : /healthcheck répond 200 même lorsque
                 # Elasticsearch est injoignable. Ces sondes ne valident donc
                 # aujourd'hui que la réponse du processus Node, pas le bon
@@ -112,3 +107,5 @@
                   periodSeconds: 10
                   timeoutSeconds: 5
                   failureThreshold: 3
+                volumeMounts: "{{ judilibre_admin_extra_volume_mounts }}"
+            volumes: "{{ judilibre_admin_extra_volumes }}"

@@ -1,0 +1,23 @@
+---
+# Déploiement de judilibre-admin sur la plateforme publique (Scaleway).
+#
+# Le pendant public de deploy_app.yml. Deux différences seulement :
+#
+#   - la cible n'est pas un nœud maître joint en SSH mais l'API d'un cluster
+#     distant, atteinte depuis la machine qui exécute le playbook. D'où
+#     `hosts: localhost` et un kubeconfig fabriqué par l'appelant ;
+#   - le rôle n'y crée que le Deployment. Le namespace, le Service, l'Ingress,
+#     les certificats et les Secrets préexistent sur ces clusters : ils sont
+#     posés par judilibre-ops, et le rôle n'en est pas la source de vérité.
+#     Voir les drapeaux judilibre_admin_manage_* dans group_vars/scw_*.
+#
+# Ce playbook ne peut pas tourner depuis un runner GitLab interne : le flux vers
+# le plan de contrôle Scaleway (port 6443) n'existe pas depuis le réseau Justice.
+# Il est lancé par GitHub Actions, dont les runners ont une sortie libre.
+# Cf. le commentaire en tête de .gitlab-ci.yml.
+- name: Deploy judilibre-admin on the public platform
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: judilibre_admin
+...

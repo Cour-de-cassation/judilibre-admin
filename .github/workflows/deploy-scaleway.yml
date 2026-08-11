@@ -1,0 +1,133 @@
+name: Déploiement sur Scaleway
+
+# Rétablit les déploiements publics supprimés le 12/06/2026 avec push.yml, mais
+# sans réintroduire judilibre-ops : ce qui est lancé ici est le rôle Ansible du
+# dépôt, celui-là même qui déploie les trois clusters privés.
+#
+# Pourquoi GitHub et non GitLab : le plan de contrôle Kubernetes de Scaleway
+# n'écoute que sur 6443, et aucun flux ne mène du réseau interne à ce port.
+# Mesuré le 12/08/2026, détail en tête de .gitlab-ci.yml. Les runners GitHub,
+# eux, ont une sortie libre.
+#
+# Manuel, comme l'était push.yml — dont le déclencheur sur push était déjà
+# commenté avant sa suppression. Un déploiement en production ne part pas seul.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Étiquette de l'image sur Docker Hub (ex. 1.4.2)"
+        required: true
+        type: string
+      target:
+        description: "Cluster visé"
+        required: true
+        type: choice
+        default: dev-par1
+        options:
+          - dev-par1
+          - prod-par1
+          - prod-par2
+          - prod-les-deux
+
+env:
+  # Épinglées : une version d'ansible-core ou de la collection qui change sous
+  # nos pieds est un déploiement qui casse sans qu'aucun commit n'ait bougé.
+  ANSIBLE_VERSION: "2.17.6"
+  KUBERNETES_COLLECTION_VERSION: "5.0.0"
+
+jobs:
+  dev_par1:
+    name: 🚀 dev-par1
+    if: inputs.target == 'dev-par1'
+    runs-on: ubuntu-latest
+    environment: scw-dev-par1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outillage Ansible
+        uses: ./.github/actions/setup-ansible
+        with:
+          ansible-version: ${{ env.ANSIBLE_VERSION }}
+          collection-version: ${{ env.KUBERNETES_COLLECTION_VERSION }}
+
+      - name: Kubeconfig
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER }}
+        run: .github/scripts/build-kubeconfig.sh
+
+      - name: Déploiement
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+        run: .github/scripts/deploy-scaleway.sh scw_dev_par1
+
+  prod_par1:
+    name: 🚀 prod-par1
+    if: inputs.target == 'prod-par1' || inputs.target == 'prod-les-deux'
+    runs-on: ubuntu-latest
+    environment: scw-prod-par1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outillage Ansible
+        uses: ./.github/actions/setup-ansible
+        with:
+          ansible-version: ${{ env.ANSIBLE_VERSION }}
+          collection-version: ${{ env.KUBERNETES_COLLECTION_VERSION }}
+
+      - name: Kubeconfig
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA_PROD_PAR1 }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME_PROD_PAR1 }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN_PROD_PAR1 }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR1 }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR1 }}
+        run: .github/scripts/build-kubeconfig.sh
+
+      - name: Déploiement
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+        run: .github/scripts/deploy-scaleway.sh scw_prod_par1
+
+  prod_par2:
+    name: 🚀 prod-par2
+    # Le second site n'est touché qu'après le premier : si par1 échoue, par2
+    # reste sur la version précédente et le service public tient toujours.
+    # `always()` est nécessaire pour que le job reste éligible quand prod_par1
+    # a été ignoré — cas d'un déploiement visant par2 seul.
+    needs: prod_par1
+    if: >-
+      always() &&
+      (inputs.target == 'prod-par2' ||
+       (inputs.target == 'prod-les-deux' && needs.prod_par1.result == 'success'))
+    runs-on: ubuntu-latest
+    environment: scw-prod-par2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outillage Ansible
+        uses: ./.github/actions/setup-ansible
+        with:
+          ansible-version: ${{ env.ANSIBLE_VERSION }}
+          collection-version: ${{ env.KUBERNETES_COLLECTION_VERSION }}
+
+      - name: Kubeconfig
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA_PROD_PAR2 }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME_PROD_PAR2 }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN_PROD_PAR2 }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR2 }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR2 }}
+        run: .github/scripts/build-kubeconfig.sh
+
+      - name: Déploiement
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+        run: .github/scripts/deploy-scaleway.sh scw_prod_par2

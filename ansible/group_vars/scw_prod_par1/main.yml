@@ -1,0 +1,4 @@
+---
+# Cluster scw-prod-par1 — production, premier site.
+# Exposé sur admin.prod-par1.judilibre.io.
+judilibre_admin_namespace: judilibre-scw-prod-par1-master
