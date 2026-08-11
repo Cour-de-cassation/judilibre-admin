@@ -75,20 +75,71 @@ deploy_staging:
     - check_if_image_is_on_dockerhub
     - deploy_preprod
 
-# Déploiement de la production publique, à écrire.
-# Ne pas le nommer deploy_prod : ce nom est celui du job de production privée
-# fourni par le template, qu'il écraserait silencieusement.
+# ──────────────────────────────────────────────────────────────────────────────
+# Sonde temporaire — les runners internes atteignent-ils Scaleway ?
 #
-# deploy_prod_public:
-#   stage: deploy
-#   environment: "prod"
-#   image: alpine/ansible:2.16.1
-#   script:
-#     - echo ""
-#   tags:
-#     - docker
-#   rules:
-#     - if: "$CI_COMMIT_TAG"
-#       when: manual
-#   needs:
-#     - deploy_staging
+# Préalable à toute reprise des déploiements publics depuis GitLab : les runners
+# sont sur le réseau Justice, et rien ne prouve aujourd'hui que l'API Kubernetes
+# de Scaleway leur soit accessible. Ce job ne déploie rien et ne lit aucun
+# secret d'authentification — il mesure seulement la joignabilité.
+#
+# Les deux tentatives, directe puis par le proxy, disent laquelle des deux voies
+# emprunter dans les vrais jobs. N'importe quel code HTTP prouve que le flux
+# passe : l'API répond 401 ou 403 sans jeton, ce qui suffit. Seul un délai
+# dépassé signale un flux fermé.
+#
+# Variable requise : KUBE_SCW_URL, l'URL du plan de contrôle du cluster visé
+# (de la forme https://<uuid>.api.fr-par.scw.cloud:6443).
+#
+# À supprimer une fois la question tranchée.
+# ──────────────────────────────────────────────────────────────────────────────
+
+probe_scw_api:
+  stage: deploy
+  # Image déjà utilisée par tous les jobs de déploiement du template, donc
+  # présente dans le cache du runner : la sonde ne dépend ni d'un tirage
+  # d'image ni d'une installation de paquet, deux flux qu'elle est justement
+  # censée ne pas présupposer. Python est fourni par l'image.
+  image: ${ANSIBLE_IMAGE}
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - |
+      python3 - <<'PY'
+      import os, ssl, time, urllib.request, urllib.error
+
+      url = os.environ.get("KUBE_SCW_URL", "").rstrip("/")
+      if not url:
+          raise SystemExit("KUBE_SCW_URL n'est pas definie -- creer la variable CI avant de relancer.")
+
+      # Le certificat n'est pas verifie : on mesure la joignabilite du reseau,
+      # pas la chaine de confiance. L'autorite vit dans KUBE_SCW_CA, que cette
+      # sonde n'a deliberement pas besoin de lire.
+      ctx = ssl.create_default_context()
+      ctx.check_hostname = False
+      ctx.verify_mode = ssl.CERT_NONE
+
+      def essai(libelle, proxy):
+          # ProxyHandler({}) neutralise aussi les variables d'environnement,
+          # ce qui rend le test direct reellement direct.
+          handlers = [urllib.request.ProxyHandler({"https": proxy} if proxy else {}),
+                      urllib.request.HTTPSHandler(context=ctx)]
+          debut = time.time()
+          try:
+              reponse = urllib.request.build_opener(*handlers).open(url + "/version", timeout=15)
+              print(f"   {libelle} : HTTP {reponse.status} en {time.time() - debut:.1f}s -- le flux passe")
+          except urllib.error.HTTPError as err:
+              # 401 ou 403 sans jeton : l'API repond, donc le reseau est ouvert.
+              print(f"   {libelle} : HTTP {err.code} en {time.time() - debut:.1f}s -- le flux passe")
+          except Exception as err:
+              print(f"   {libelle} : echec apres {time.time() - debut:.1f}s -- {type(err).__name__}: {err}")
+
+      print("Cible :", url)
+      essai("direct      ", None)
+      essai("via le proxy", os.environ.get("HTTPS_PROXY_DEV"))
+      PY
+  tags:
+    - docker
+  rules:
+    - when: manual
+      allow_failure: true
