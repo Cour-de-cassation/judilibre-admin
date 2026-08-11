@@ -8,11 +8,17 @@
     # Sans attente, Ansible rend la main dès que l'API a accepté l'objet : un
     # déploiement qui part en CrashLoopBackOff ou en ImagePullBackOff donnerait
     # un pipeline vert.
+    #
+    # Ne pas ajouter de wait_condition ici : le module remplacerait alors son
+    # prédicat spécifique aux Deployments par un simple test de condition. Or
+    # avec maxUnavailable à 0, la condition Available reste vraie pendant tout
+    # le déploiement — l'ancien pod continue de servir — et l'attente se
+    # terminerait immédiatement. Sans wait_condition, le module vérifie que
+    # observedGeneration a rattrapé generation, que availableReplicas est au
+    # niveau attendu et qu'aucune réplique n'est indisponible : c'est bien la
+    # fin du rollout.
     wait: true
     wait_timeout: "{{ judilibre_admin_wait_timeout }}"
-    wait_condition:
-      type: Available
-      status: "True"
     definition:
       apiVersion: apps/v1
       kind: Deployment
