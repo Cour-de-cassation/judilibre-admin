@@ -1,5 +1,12 @@
 name: Déploiement sur Scaleway
 
+# La liste des runs affiche sinon « Déploiement sur Scaleway #2 », qui ne dit ni
+# où l'on a déployé ni quoi. L'enregistrement de déploiement que GitHub crée par
+# ailleurs ne retient que le commit de cette chaîne, jamais l'image livrée : sans
+# cette ligne, retrouver ce qui est parti sur un cluster oblige à ouvrir les runs
+# un par un.
+run-name: 🚀 ${{ inputs.target }} ← ${{ inputs.image }} (par @${{ github.actor }})
+
 # Déploie judilibre-admin sur les trois clusters publics, en exécutant le rôle
 # Ansible de ce dépôt — le même que sur les clusters privés.
 #
