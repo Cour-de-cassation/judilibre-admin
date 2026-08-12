@@ -8,14 +8,41 @@
 ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
 # ── Périmètre ─────────────────────────────────────────────────────────────────
-# Sur ces clusters, le rôle ne gère QUE le Deployment. Le namespace, le Service
-# (judilibre-admin-svc, visé nommément par l'Ingress), l'Ingress lui-même, les
-# certificats ACME et les deux Secrets sont posés par judilibre-ops. Les
-# réécrire depuis ici ferait de ce dépôt une seconde source de vérité pour des
-# objets vivants, ce qui est le meilleur moyen de casser une production.
-judilibre_admin_manage_namespace: false
+# Le rôle porte ici la même empreinte que dans les autres dépôts applicatifs de
+# la plateforme — juritcom, jurica-collect, portalis-collect, nlp-juritools,
+# pseudo-app et judilibre-search créent tous leur namespace, leur Service et
+# leur Deployment. Une application possède ses objets.
+#
+# Le Service compte particulièrement : il partage le sélecteur `app` avec le
+# Deployment. Les séparer entre deux dépôts, c'est pouvoir modifier le label du
+# pod d'un côté sans l'autre — le Service ne sélectionne alors plus rien,
+# l'Ingress renvoie 503, et rien ne l'aurait vu passer. C'est le mode de panne
+# qui a déjà produit la divergence de TRANSACTION_INDEX entre les deux sites de
+# production : ce qui est réparti entre deux endroits que rien ne compare finit
+# par diverger.
+judilibre_admin_manage_namespace: true
+judilibre_admin_manage_service: true
+
+# Restent chez judilibre-ops, faute de pouvoir être repris sans risque :
+#
+#   - l'Ingress, qui utilise ici nginx quand le privé utilise Traefik, avec ses
+#     annotations, sa liste blanche d'adresses et deux secrets ACME. Une erreur
+#     y coupe l'accès public ;
+#   - les deux Secrets, qui portent le mot de passe du SUPERUTILISATEUR elastic.
+#     Les reprendre le figerait dans un second dépôt, et une valeur erronée
+#     écraserait des identifiants vivants ;
+#   - l'Elasticsearch, le LoadBalancer, l'issuer ACME et le DNS.
+#
+# Aucun ConfigMap n'existe sur ces clusters : la configuration non sensible est
+# posée en clair dans le Deployment, ce que judilibre_admin_extra_env reproduit.
 judilibre_admin_manage_config: false
-judilibre_admin_manage_service: false
+
+# ── Service ───────────────────────────────────────────────────────────────────
+# Nom et port de l'existant, à respecter au caractère près : l'Ingress
+# judilibre-admin-route vise ce Service par son nom, et le publie sur 80. Le
+# targetPort, lui, suit judilibre_admin_app_port, soit 8080.
+judilibre_admin_service_name: judilibre-admin-svc
+judilibre_admin_service_port: 80
 
 # ── Conteneur ─────────────────────────────────────────────────────────────────
 # 8080 ici, contre 8000 en privé : c'est l'API_PORT des workflows historiques.
