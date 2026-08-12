@@ -36,7 +36,14 @@ on:
 env:
   # Épinglées : une version d'ansible-core ou de la collection qui change sous
   # nos pieds est un déploiement qui casse sans qu'aucun commit n'ait bougé.
-  ANSIBLE_VERSION: "2.17.6"
+  #
+  # 2.20.0 n'est pas un choix libre : c'est la version de l'image
+  # alpine/ansible:2.20.0 avec laquelle la chaîne privée exécute ce même rôle.
+  # En deçà de 2.19, un `"{{ x | int }}"` placé en valeur de dictionnaire arrive
+  # à l'API en **chaîne** ; le Deployment est alors refusé — `cannot unmarshal
+  # string into Go struct field DeploymentSpec.spec.replicas of type int32`.
+  # Les deux chaînes partagent le rôle : elles doivent partager l'outil.
+  ANSIBLE_VERSION: "2.20.0"
   KUBERNETES_COLLECTION_VERSION: "5.0.0"
 
 jobs:
@@ -49,6 +56,7 @@ jobs:
     # même namespace, et deux déclarations finiraient par diverger.
     env:
       NAMESPACE: judilibre-scw-dev-par1-dev
+      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -71,7 +79,6 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_dev_par1
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
@@ -93,6 +100,7 @@ jobs:
     environment: scw-prod-par1
     env:
       NAMESPACE: judilibre-scw-prod-par1-master
+      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -115,7 +123,6 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par1
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
@@ -143,6 +150,7 @@ jobs:
     environment: scw-prod-par2
     env:
       NAMESPACE: judilibre-scw-prod-par2-master
+      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -165,7 +173,6 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par2
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
