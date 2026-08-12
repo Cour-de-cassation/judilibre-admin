@@ -1,11 +1,10 @@
 ---
-# Les trois clusters publics Scaleway.
+# Les trois clusters publics.
 #
 # Chaque groupe ne porte qu'un hôte fictif : le playbook s'exécute en local et
-# parle à l'API distante par le kubeconfig, il n'y a aucune machine à joindre.
-# L'inventaire ne sert donc qu'à une chose — permettre le chargement de
-# group_vars/<groupe>/, ce qu'un `hosts: localhost` sans inventaire ne fait pas.
-# C'est exactement le piège qui avait rendu group_vars/staging/ inopérant.
+# parle à l'API distante par le kubeconfig. L'inventaire ne sert qu'à permettre
+# le chargement de group_vars/<groupe>/, qu'un `hosts: localhost` sans
+# inventaire ne fait pas.
 scw:
   children:
     scw_dev_par1:

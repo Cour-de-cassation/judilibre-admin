@@ -1,43 +1,24 @@
 name: Déploiement sur Scaleway
 
-# Rétablit les déploiements publics supprimés le 12/06/2026 avec push.yml, mais
-# sans réintroduire judilibre-ops : ce qui est lancé ici est le rôle Ansible du
-# dépôt, celui-là même qui déploie les trois clusters privés.
+# Déploie judilibre-admin sur les trois clusters publics, en exécutant le rôle
+# Ansible de ce dépôt — le même que sur les clusters privés.
 #
-# Pourquoi GitHub et non GitLab : le plan de contrôle Kubernetes de Scaleway
-# n'écoute que sur 6443, et aucun flux ne mène du réseau interne à ce port.
-# Mesuré le 12/08/2026, détail en tête de .gitlab-ci.yml. Les runners GitHub,
-# eux, ont une sortie libre.
+# Manuel : un déploiement en production ne part pas tout seul.
 #
-# Manuel, comme l'était push.yml — dont le déclencheur sur push était déjà
-# commenté avant sa suppression. Un déploiement en production ne part pas seul.
-#
-# Périmètre : ce workflow ne gère QUE le Deployment de l'application. Créer les
-# objets d'un cluster — namespace, Secrets, Elasticsearch, Ingress, LoadBalancer,
-# certificats — reste l'affaire de judilibre-ops, via create_environment.sh, que
-# create-infra-test.yaml rejoue chaque samedi sur un environnement jetable. Ne
-# pas dupliquer cette capacité ici : elle existe, et elle est éprouvée toutes les
-# semaines. Pour reconstruire un vrai cluster, lancer ce script à la main avec le
-# fichier d'environnement correspondant.
+# Périmètre : namespace, Service et Deployment. Le reste des objets d'un cluster
+# — Ingress, Secrets, Elasticsearch, LoadBalancer, certificats — est créé par
+# judilibre-ops, via create_environment.sh.
 
 on:
   workflow_dispatch:
     inputs:
       image:
-        # Référence complète, et non un numéro accolé à une organisation figée :
-        # le premier passage en production doit pouvoir poser l'image DÉJÀ en
-        # service, qui vit sous opendatajustice. Déployer la chaîne et le code
-        # en même temps rendrait un échec inexploitable — on ne saurait pas
-        # lequel des deux est en cause.
-        #
-        #   judilibre/judilibre-admin:0.0.7              cas courant, construit
-        #                                                par tag.yml
-        #   opendatajustice/judilibre-admin:0.1.4-20f7c3 ce que tourne la
-        #                                                production aujourd'hui
-        #   opendatajustice/judilibre-admin:0.1.4-5e0d1e ce que tourne dev-par1
-        #
-        # Une référence erronée donne un ImagePullBackOff : le rollout échoue,
-        # l'ancien pod continue de servir, et le retour arrière s'exécute.
+        # Référence complète, pour pouvoir redéployer à l'identique l'image
+        # déjà en service : changer la chaîne et le code en même temps rendrait
+        # un échec inexploitable. Le cas courant est l'image construite par
+        # tag.yml ; les images antérieures vivent sous une autre organisation.
+        # Une référence erronée donne un ImagePullBackOff, donc un rollout en
+        # échec, un ancien pod toujours en service, et un retour arrière.
         description: "Référence complète de l'image (ex. judilibre/judilibre-admin:0.0.7)"
         required: true
         type: string
@@ -89,8 +70,7 @@ jobs:
           IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_dev_par1
 
-      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
-      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
       - name: Contrôle de bout en bout
         id: controle
         env:
@@ -134,8 +114,7 @@ jobs:
           IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par1
 
-      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
-      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
       - name: Contrôle de bout en bout
         id: controle
         env:
@@ -151,10 +130,8 @@ jobs:
 
   prod_par2:
     name: 🚀 prod-par2
-    # Le second site n'est touché qu'après le premier : si par1 échoue, par2
-    # reste sur la version précédente et le service public tient toujours.
-    # `always()` est nécessaire pour que le job reste éligible quand prod_par1
-    # a été ignoré — cas d'un déploiement visant par2 seul.
+    # Le second site n'est touché qu'après le premier. `always()` garde le job
+    # éligible quand prod_par1 est ignoré, cas d'un déploiement visant par2 seul.
     needs: prod_par1
     if: >-
       always() &&
@@ -187,8 +164,7 @@ jobs:
           IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par2
 
-      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
-      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
       - name: Contrôle de bout en bout
         id: controle
         env:

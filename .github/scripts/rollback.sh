@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Revient à la révision précédente du Deployment.
 #
-# L'ancienne chaîne le faisait dans update_app.sh ; ne pas le reprendre aurait
-# été une régression silencieuse. Avec maxUnavailable à 0, l'ancien pod sert
-# toujours pendant un rollout raté — il n'y a donc pas de coupure à rattraper,
-# mais l'objet resterait en état intermédiaire jusqu'à intervention humaine.
+# Avec maxUnavailable à 0, l'ancien pod sert toujours pendant un rollout raté :
+# il n'y a pas de coupure à rattraper, mais l'objet resterait à mi-chemin sans
+# cette étape.
 set -euo pipefail
 
 if [ -z "${NAMESPACE:-}" ]; then

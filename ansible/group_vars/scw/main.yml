@@ -2,45 +2,31 @@
 # Réglages communs aux trois clusters publics Scaleway.
 # Les valeurs propres à chaque cluster vivent dans group_vars/scw_<zone>/.
 
-# group_vars/all impose un interpréteur situé dans le venv du compte `ops` des
-# VM privées. Il n'existe pas sur un runner GitHub, où ce playbook s'exécute en
-# local : on reprend celui d'ansible-playbook lui-même.
+# group_vars/all impose l'interpréteur du venv des VM privées, absent d'un
+# runner où ce playbook s'exécute en local.
 ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
 # ── Périmètre ─────────────────────────────────────────────────────────────────
-# Le rôle porte ici la même empreinte que dans les autres dépôts applicatifs de
-# la plateforme — juritcom, jurica-collect, portalis-collect, nlp-juritools,
-# pseudo-app et judilibre-search créent tous leur namespace, leur Service et
-# leur Deployment. Une application possède ses objets.
+# Même empreinte que les autres dépôts applicatifs de la plateforme : une
+# application possède son namespace, son Service et son Deployment.
 #
-# Le Service compte particulièrement : il partage le sélecteur `app` avec le
-# Deployment. Les séparer entre deux dépôts, c'est pouvoir modifier le label du
-# pod d'un côté sans l'autre — le Service ne sélectionne alors plus rien,
-# l'Ingress renvoie 503, et rien ne l'aurait vu passer. C'est le mode de panne
-# qui a déjà produit la divergence de TRANSACTION_INDEX entre les deux sites de
-# production : ce qui est réparti entre deux endroits que rien ne compare finit
-# par diverger.
+# Le Service surtout : il partage le sélecteur `app` avec le Deployment. Séparés
+# entre deux dépôts, un label modifié d'un côté et pas de l'autre laisse le
+# Service ne plus rien sélectionner, sans que rien ne le signale.
 judilibre_admin_manage_namespace: true
 judilibre_admin_manage_service: true
 
-# Restent chez judilibre-ops, faute de pouvoir être repris sans risque :
-#
-#   - l'Ingress, qui utilise ici nginx quand le privé utilise Traefik, avec ses
-#     annotations, sa liste blanche d'adresses et deux secrets ACME. Une erreur
-#     y coupe l'accès public ;
-#   - les deux Secrets, qui portent le mot de passe du SUPERUTILISATEUR elastic.
-#     Les reprendre le figerait dans un second dépôt, et une valeur erronée
-#     écraserait des identifiants vivants ;
-#   - l'Elasticsearch, le LoadBalancer, l'issuer ACME et le DNS.
+# Restent chez judilibre-ops : l'Ingress — nginx ici contre Traefik en privé,
+# avec ses annotations et ses secrets TLS —, les Secrets d'accès, l'Elasticsearch,
+# le LoadBalancer, l'issuer ACME et le DNS.
 #
 # Aucun ConfigMap n'existe sur ces clusters : la configuration non sensible est
-# posée en clair dans le Deployment, ce que judilibre_admin_extra_env reproduit.
+# posée dans le Deployment, ce que judilibre_admin_extra_env reproduit.
 judilibre_admin_manage_config: false
 
 # ── Service ───────────────────────────────────────────────────────────────────
-# Nom et port de l'existant, à respecter au caractère près : l'Ingress
-# judilibre-admin-route vise ce Service par son nom, et le publie sur 80. Le
-# targetPort, lui, suit judilibre_admin_app_port, soit 8080.
+# Nom et port de l'existant, à respecter : l'Ingress vise ce Service par son nom
+# et le publie sur 80. Le targetPort suit judilibre_admin_app_port.
 judilibre_admin_service_name: judilibre-admin-svc
 judilibre_admin_service_port: 80
 
@@ -51,19 +37,14 @@ judilibre_admin_app_port: 8080
 # Déjà le cas aujourd'hui sur ces clusters — le désactiver serait une régression.
 judilibre_admin_read_only_root_fs: true
 
-# Aucune demande ni limite : c'est l'état actuel de ces Deployments. En poser
-# sans fixer NODE_OPTIONS en même temps exposerait la production à des OOMKills,
-# V8 dimensionnant son tas d'après la limite du conteneur. À traiter comme un
-# sujet à part entière, pas comme un effet de bord de ce portage.
+# Aucune demande ni limite, comme aujourd'hui. En poser sans fixer NODE_OPTIONS
+# en même temps exposerait à des OOMKills, V8 dimensionnant son tas d'après la
+# limite du conteneur. Sujet à traiter pour lui-même.
 judilibre_admin_resources: {}
 
 # ── Configuration injectée ────────────────────────────────────────────────────
-# Reprise à l'identique de k8s/deployment.yaml de judilibre-ops. Les deux
-# Secrets sont créés par deploy_k8s_services.sh et ne sont pas gérés ici.
-#
-# À noter : sur cette plateforme, elastic-node contient les identifiants du
-# SUPERUTILISATEUR `elastic`, contrairement au privé qui utilise un compte
-# restreint. Écart de sécurité propre au public, à traiter séparément.
+# Reprise de k8s/deployment.yaml de judilibre-ops. Les deux Secrets référencés
+# sont créés par ce dépôt-là et ne sont pas gérés ici.
 judilibre_admin_es_auth_secret: "{{ judilibre_admin_app_id }}-es-path-with-auth"
 judilibre_admin_http_passwd_secret: "{{ judilibre_admin_app_id }}-http-passwd"
 judilibre_admin_es_ca_secret: judilibre-es-http-certs-public
@@ -97,8 +78,6 @@ judilibre_admin_extra_volume_mounts:
     mountPath: /etc/elasticsearch/certificates
     readOnly: true
 
-# 180 s (le défaut du rôle) est trop court pour un premier déploiement sur ces
-# clusters : la startupProbe accorde déjà 60 s, auxquelles s'ajoute le tirage
-# d'une image froide depuis Docker Hub. Le progressDeadlineSeconds du Deployment
-# vaut 600 s côté Kubernetes — mieux vaut qu'Ansible n'abandonne pas trop tôt.
+# 180 s est trop court ici : la startupProbe accorde déjà 60 s, plus le tirage
+# d'une image froide. Kubernetes, lui, attend 600 s avant de déclarer l'échec.
 judilibre_admin_wait_timeout: 300

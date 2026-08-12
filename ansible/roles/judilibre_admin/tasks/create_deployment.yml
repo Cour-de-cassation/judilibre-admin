@@ -46,10 +46,9 @@
           metadata:
             labels:
               app: "{{ judilibre_admin_app_id }}"
-            # Les variables injectées par envFrom sont lues au démarrage du
-            # conteneur : modifier le ConfigMap ou le Secret ne redéploie rien.
-            # Ces empreintes changent avec leur contenu et forcent le rollout.
-            # Vide là où le rôle ne gère pas ces deux objets.
+            # Les variables d'envFrom sont lues au démarrage : modifier le
+            # ConfigMap ou le Secret ne redéploierait rien sans ces empreintes,
+            # qui changent avec leur contenu. Vides là où le rôle ne les gère pas.
             annotations: "{{ judilibre_admin_pod_annotations }}"
           spec:
             securityContext:
@@ -69,10 +68,9 @@
                       - ALL
                 ports:
                   - containerPort: "{{ judilibre_admin_app_port | int }}"
-                # En privé, la configuration arrive en bloc depuis le ConfigMap
-                # et le Secret du rôle. En public, elle vient de Secrets
-                # préexistants référencés clé par clé, via extra_env. Les deux
-                # listes sont vides quand elles ne s'appliquent pas.
+                # Selon l'environnement : en bloc depuis le ConfigMap et le
+                # Secret du rôle, ou clé par clé via extra_env. Chaque liste est
+                # vide quand elle ne s'applique pas.
                 envFrom: "{{ judilibre_admin_env_from }}"
                 env: "{{ judilibre_admin_extra_env }}"
                 resources: "{{ judilibre_admin_resources }}"

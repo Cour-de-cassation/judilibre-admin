@@ -3,8 +3,7 @@
 #
 #   usage : deploy-scaleway.sh <groupe-de-inventaire>
 #
-# Le groupe désigne le cluster : scw_dev_par1, scw_prod_par1, scw_prod_par2.
-# Tout le reste vient de ansible/group_vars/<groupe>/ et de group_vars/scw/.
+# Le groupe désigne le cluster ; tout le reste vient de ses group_vars.
 set -euo pipefail
 
 if [ "$#" -lt 1 ]; then
@@ -18,9 +17,8 @@ if [ -z "${IMAGE:-}" ]; then
     exit 1
 fi
 
-# group_vars/all/vault.yml est chiffré et se charge pour tout hôte, y compris
-# ceux de cet inventaire : le mot de passe du vault est donc requis même quand
-# le playbook ne lit aucun secret.
+# group_vars/all/vault.yml est chiffré et se charge pour tout hôte : le mot de
+# passe du vault est requis même quand le playbook ne lit aucun secret.
 if [ -z "${ANSIBLE_VAULT_PASSWORD:-}" ]; then
     echo "❌ ANSIBLE_VAULT_PASSWORD est vide — le secret manque au dépôt." >&2
     exit 1
