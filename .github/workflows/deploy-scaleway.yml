@@ -44,15 +44,16 @@ on:
           - prod-les-deux
 
 env:
-  # Épinglées : une version d'ansible-core ou de la collection qui change sous
-  # nos pieds est un déploiement qui casse sans qu'aucun commit n'ait bougé.
+  # Épinglées : une version d'ansible-core ou de la collection qui change d'une
+  # exécution à l'autre est un déploiement qui casse sans qu'aucun commit n'ait
+  # bougé.
   #
   # 2.20.0 n'est pas un choix libre : c'est la version de l'image
   # alpine/ansible:2.20.0 avec laquelle la chaîne privée exécute ce même rôle.
   # En deçà de 2.19, un `"{{ x | int }}"` placé en valeur de dictionnaire arrive
-  # à l'API en **chaîne** ; le Deployment est alors refusé — `cannot unmarshal
-  # string into Go struct field DeploymentSpec.spec.replicas of type int32`.
-  # Les deux chaînes partagent le rôle : elles doivent partager l'outil.
+  # à l'API en chaîne de caractères, et le Deployment est refusé — `cannot
+  # unmarshal string into Go struct field DeploymentSpec.spec.replicas of type
+  # int32`. Les deux chaînes partagent le rôle : elles doivent partager l'outil.
   ANSIBLE_VERSION: "2.20.0"
   KUBERNETES_COLLECTION_VERSION: "5.0.0"
 

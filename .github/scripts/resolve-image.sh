@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
-# Détermine l'image à déployer, et la construit si elle n'existe pas encore.
+# Détermine l'image à déployer, et la construit si elle n'est pas déjà publiée.
 #
-# Deux modes, selon que l'appelant a fourni une référence ou non.
+# Référence fournie en entrée : elle est déployée telle quelle, sans
+# construction ni accès au registre. C'est le mode qui permet de redéployer une
+# image déjà en service, ou de revenir à une version antérieure.
 #
-# Référence fournie — on la déploie telle quelle, sans rien construire. C'est le
-# mode qui permet de redéployer une image déjà en service pour éprouver la
-# chaîne seule, ou de revenir à une version antérieure. Aucun échange avec
-# Docker Hub.
+# Référence absente : l'image est celle du commit sur lequel le workflow tourne,
+# étiquetée par son empreinte courte. Si le registre la porte déjà, rien n'est
+# reconstruit — déployer plusieurs clusters depuis un même commit livre alors le
+# même artefact, au lieu d'autant de constructions distinctes.
 #
-# Référence absente — l'image est celle du commit sur lequel le workflow tourne,
-# étiquetée par son empreinte courte. Si elle est déjà publiée, on ne reconstruit
-# rien : déployer la recette puis les deux productions depuis le même commit
-# livre donc exactement le même artefact, au bit près, au lieu de trois
-# constructions qu'aucune vérification ne rapprocherait jamais.
-#
-# L'étiquette est l'empreinte du commit et non un numéro de version : c'est la
-# convention qu'applique déjà la chaîne privée, où les images du registre GitLab
-# sont nommées par le sha court. Et une empreinte ne bouge pas, contrairement à
-# `latest` ou au nom d'une branche — deux déploiements de la même référence
-# donnent le même résultat à un an d'intervalle.
+# L'étiquette est l'empreinte du commit plutôt qu'un numéro de version : c'est la
+# convention de la chaîne privée, dont les images sont nommées par le sha court.
+# Et une empreinte ne se déplace pas, contrairement à `latest` ou au nom d'une
+# branche : la même référence déploie la même chose des mois plus tard.
 set -euo pipefail
 
 if [ -z "${GITHUB_ENV:-}" ]; then
@@ -48,8 +43,8 @@ else
         echo "✅ déjà publiée — rien à construire."
     else
         # Le dernier étage du Dockerfile est « local », destiné au développement,
-        # et Docker prend le dernier étage par défaut : viser « production »
-        # explicitement, comme le font la chaîne privée et tag.yml.
+        # et Docker prend le dernier étage par défaut : l'étage « production »
+        # se vise explicitement, comme le font la chaîne privée et tag.yml.
         echo "▶ construction puis publication"
         docker build --target=production --tag "${reference}" .
         docker push "${reference}"
@@ -57,8 +52,8 @@ else
     fi
 fi
 
-# Les étapes suivantes — déploiement et retour arrière — lisent IMAGE ici, et
-# nulle part ailleurs : une seule source, pour qu'elles ne puissent pas diverger.
+# Les étapes suivantes — déploiement et retour arrière — lisent IMAGE d'ici, et
+# de nulle part ailleurs : une seule source, pour qu'elles ne divergent pas.
 echo "IMAGE=${reference}" >> "${GITHUB_ENV}"
 
 # Le titre du run est figé avant l'exécution et ne peut donc pas porter une

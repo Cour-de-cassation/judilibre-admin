@@ -5,16 +5,15 @@
 # il n'y a pas de coupure à rattraper, mais l'objet resterait à mi-chemin sans
 # cette étape.
 #
-# Ne défaire que ce qu'on a fait : un déploiement qui échoue **avant** d'avoir
-# écrit le Deployment ne laisse rien à annuler, et lancer quand même un
-# `rollout undo` ferait reculer une révision parfaitement saine, que nous
-# n'avions pas touchée. Le témoin est l'image du Deployment vivant : tant
-# qu'elle n'est pas celle qu'on vient de demander, notre apply n'a pas atterri.
+# Le retour arrière n'a lieu que si ce passage a effectivement écrit le
+# Deployment : un échec survenu plus tôt ne laisse rien à annuler, et un
+# `rollout undo` y ferait reculer une révision saine. L'image du Deployment
+# vivant sert de témoin — tant qu'elle n'est pas celle demandée, l'apply n'a
+# pas atteint le cluster.
 #
-# kubectl prévient par ailleurs qu'un retour arrière sur un objet géré par
-# `apply` ne met pas à jour last-applied-configuration — le déploiement suivant
-# repartirait donc d'une base fausse. Raison de plus pour ne s'y résoudre que
-# lorsque c'est bien notre propre passage qu'il faut défaire.
+# kubectl signale par ailleurs qu'un retour arrière sur un objet géré par
+# `apply` laisse `last-applied-configuration` inchangée, ce qui fausse l'apply
+# suivant. Raison de plus pour ne s'y résoudre qu'à bon escient.
 set -euo pipefail
 
 if [ -z "${NAMESPACE:-}" ]; then
@@ -22,7 +21,7 @@ if [ -z "${NAMESPACE:-}" ]; then
     exit 1
 fi
 if [ -z "${IMAGE:-}" ]; then
-    echo "❌ IMAGE est vide — impossible de savoir si notre apply a atterri." >&2
+    echo "❌ IMAGE est vide — impossible de savoir si l'apply a atteint le cluster." >&2
     exit 1
 fi
 
@@ -31,7 +30,7 @@ image_vivante=$(kubectl --namespace="${NAMESPACE}" get deployment judilibre-admi
 
 if [ "${image_vivante}" != "${IMAGE}" ]; then
     echo "⏭️  Rien à défaire : le Deployment porte toujours ${image_vivante:-aucune image}."
-    echo "   L'échec est survenu avant que notre apply n'atteigne le cluster."
+    echo "   L'échec est survenu avant que l'apply n'atteigne le cluster."
     exit 0
 fi
 

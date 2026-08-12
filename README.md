@@ -18,7 +18,9 @@ npm install
 
 Configurer les variables d'environnement :
 
-- Dupliquer le fichier `.env.example` et le renommer `.env`, adapter les variables d'environnement si besoin
+- Dupliquer le fichier [.env-sample](.env-sample) et le renommer `.env`, adapter les variables d'environnement si besoin
+
+L'application lit `API_PORT`, `APP_ID`, `ELASTIC_NODE`, `ELASTIC_INDEX`, `TRANSACTION_INDEX`, `HTTP_PASSWD` et `WITHOUT_ELASTIC`. Le second fichier, [.env-sample-scw](.env-sample-scw), ne sert pas à lancer l'application : il alimente les scripts de création d'environnement de `judilibre-ops`.
 
 ### Avec Docker
 
@@ -33,6 +35,16 @@ Vous pouvez également lancer l'application sans utiliser docker avec la command
 ```bash
 npm run start:watch
 ```
+
+## Déploiement
+
+L'application tourne sur deux plateformes : les clusters K3s internes, déployés par
+le pipeline GitLab, et les clusters Scaleway, déployés par GitHub Actions. Les deux
+exécutent le **même rôle Ansible**, celui de [ansible/roles/judilibre_admin](ansible/roles/judilibre_admin) ;
+seules les valeurs des `group_vars` distinguent un environnement d'un autre.
+
+Le détail des deux chaînes — déclenchement, image déployée, périmètre des objets
+créés — est décrit dans [worklfow.md](worklfow.md).
 
 #### Documentation ops
 

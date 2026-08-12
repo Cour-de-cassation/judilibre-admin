@@ -5,14 +5,12 @@
 # certificat, le LoadBalancer et l'authentification — ce que les sondes du
 # conteneur ne prouvent pas.
 #
-#
-# Toutes les adresses n'obtiennent pas la même réponse : certaines reçoivent du
-# site une redirection au lieu de l'API. Un runner dans ce cas n'apprend rien du
-# déploiement, et sa redirection ne doit surtout pas être lue comme un échec —
-# sans quoi une livraison saine serait annulée. Elle vaut donc contrôle non
-# concluant, et le repli interroge l'application depuis le cluster : on y perd
-# l'Ingress, le certificat et le LoadBalancer, on y garde la preuve que
-# l'application répond et voit son Elasticsearch.
+# Toutes les adresses sources n'obtiennent pas la même réponse : certaines
+# reçoivent une redirection au lieu de l'API. Un tel retour n'apprend rien du
+# déploiement et ne vaut donc pas échec, sous peine d'annuler une livraison
+# saine. Le contrôle bascule alors sur un appel depuis le cluster : l'Ingress,
+# le certificat et le LoadBalancer ne sont plus traversés, mais la réponse de
+# l'application et l'accès à son Elasticsearch restent prouvés.
 set -euo pipefail
 
 if [ -z "${APP_HOST:-}" ]; then
@@ -63,12 +61,12 @@ if [ "${code}" -ge 300 ] && [ "${code}" -lt 400 ]; then
     echo "⚠️  HTTP ${code} : ce runner n'obtient pas l'API mais une redirection."
     echo "   Contrôle public non concluant — repli dans le cluster."
 elif [ "${code}" -eq 401 ]; then
-    # L'authentification est celle de l'application, pas de l'Ingress : un 401
-    # prouve donc que la requête a traversé toute la chaîne publique et que
-    # l'application a répondu. Il ne dit rien du déploiement — seulement que le
-    # secret HTTP_PASSWD du dépôt a divergé du Secret du cluster, que ce
-    # déploiement ne touche pas. Défaire un déploiement sain pour cela serait
-    # une erreur ; le repli tranche, avec le mot de passe du conteneur.
+    # L'authentification est portée par l'application, pas par l'Ingress : un
+    # 401 prouve que la requête a traversé toute la chaîne publique et que
+    # l'application a répondu. Il ne dit rien du déploiement, seulement que le
+    # secret du dépôt ne correspond plus au Secret du cluster, que ce
+    # déploiement ne modifie pas. Le repli tranche, avec le mot de passe du
+    # conteneur.
     echo "⚠️  HTTP 401 : le secret HTTP_PASSWD du dépôt ne correspond pas au"
     echo "   Secret du cluster. La chaîne publique, elle, a bien répondu."
     echo "   Contrôle public non concluant — repli dans le cluster."
@@ -79,9 +77,9 @@ else
     exit 1
 fi
 
-# ── Repli : la même commande, depuis le pod ───────────────────────────────────
-# Le mot de passe lu est celui du conteneur, jamais le nôtre : il ne sort pas du
-# cluster et n'apparaît dans aucune trace du runner.
+# ── Repli : la même requête, depuis le pod ────────────────────────────────────
+# Le mot de passe utilisé est celui du conteneur : il ne sort pas du cluster et
+# n'apparaît dans aucune trace du runner.
 echo "▶ contrôle interne de ${NAMESPACE}/judilibre-admin-deployment"
 
 set +e
