@@ -11,12 +11,25 @@ name: Déploiement sur Scaleway
 #
 # Manuel, comme l'était push.yml — dont le déclencheur sur push était déjà
 # commenté avant sa suppression. Un déploiement en production ne part pas seul.
+#
+# Périmètre : ce workflow ne gère QUE le Deployment de l'application. Créer les
+# objets d'un cluster — namespace, Secrets, Elasticsearch, Ingress, LoadBalancer,
+# certificats — reste l'affaire de judilibre-ops, via create_environment.sh, que
+# create-infra-test.yaml rejoue chaque samedi sur un environnement jetable. Ne
+# pas dupliquer cette capacité ici : elle existe, et elle est éprouvée toutes les
+# semaines. Pour reconstruire un vrai cluster, lancer ce script à la main avec le
+# fichier d'environnement correspondant.
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Étiquette de l'image sur Docker Hub (ex. 1.4.2)"
+        # Les images publiées par tag.yml portent le nom du tag Git : 0.0.7 au
+        # 29/06/2026. Attention, cette numérotation est plus basse que celle de
+        # package.json (0.1.4) et que celle des images historiques
+        # d'opendatajustice (0.1.4-<empreinte>) — un déploiement fait donc
+        # reculer le numéro affiché. À corriger côté convention de tags.
+        description: "Étiquette de l'image sur Docker Hub judilibre/judilibre-admin (ex. 0.0.7)"
         required: true
         type: string
       target:
@@ -61,10 +74,26 @@ jobs:
         run: .github/scripts/build-kubeconfig.sh
 
       - name: Déploiement
+        id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
           IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
         run: .github/scripts/deploy-scaleway.sh scw_dev_par1
+
+      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
+      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      - name: Contrôle de bout en bout
+        id: controle
+        env:
+          APP_HOST: admin.dev-par1.judilibre.io
+          HTTP_PASSWD: ${{ secrets.HTTP_PASSWD }}
+        run: .github/scripts/verify-public.sh
+
+      - name: Retour arrière
+        if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
+        env:
+          NAMESPACE: judilibre-scw-dev-par1-dev
+        run: .github/scripts/rollback.sh
 
   prod_par1:
     name: 🚀 prod-par1
@@ -90,10 +119,26 @@ jobs:
         run: .github/scripts/build-kubeconfig.sh
 
       - name: Déploiement
+        id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
           IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par1
+
+      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
+      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      - name: Contrôle de bout en bout
+        id: controle
+        env:
+          APP_HOST: admin.prod-par1.judilibre.io
+          HTTP_PASSWD: ${{ secrets.HTTP_PASSWD_PROD }}
+        run: .github/scripts/verify-public.sh
+
+      - name: Retour arrière
+        if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
+        env:
+          NAMESPACE: judilibre-scw-prod-par1-master
+        run: .github/scripts/rollback.sh
 
   prod_par2:
     name: 🚀 prod-par2
@@ -127,7 +172,23 @@ jobs:
         run: .github/scripts/build-kubeconfig.sh
 
       - name: Déploiement
+        id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
           IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par2
+
+      # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
+      # par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
+      - name: Contrôle de bout en bout
+        id: controle
+        env:
+          APP_HOST: admin.prod-par2.judilibre.io
+          HTTP_PASSWD: ${{ secrets.HTTP_PASSWD_PROD }}
+        run: .github/scripts/verify-public.sh
+
+      - name: Retour arrière
+        if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
+        env:
+          NAMESPACE: judilibre-scw-prod-par2-master
+        run: .github/scripts/rollback.sh

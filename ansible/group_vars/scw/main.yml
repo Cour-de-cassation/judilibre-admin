@@ -69,3 +69,9 @@ judilibre_admin_extra_volume_mounts:
   - name: cert-ca
     mountPath: /etc/elasticsearch/certificates
     readOnly: true
+
+# 180 s (le défaut du rôle) est trop court pour un premier déploiement sur ces
+# clusters : la startupProbe accorde déjà 60 s, auxquelles s'ajoute le tirage
+# d'une image froide depuis Docker Hub. Le progressDeadlineSeconds du Deployment
+# vaut 600 s côté Kubernetes — mieux vaut qu'Ansible n'abandonne pas trop tôt.
+judilibre_admin_wait_timeout: 300
