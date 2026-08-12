@@ -45,6 +45,10 @@ jobs:
     if: inputs.target == 'dev-par1'
     runs-on: ubuntu-latest
     environment: scw-dev-par1
+    # Une seule fois pour le job : le contrôle et le retour arrière visent le
+    # même namespace, et deux déclarations finiraient par diverger.
+    env:
+      NAMESPACE: judilibre-scw-dev-par1-dev
     steps:
       - uses: actions/checkout@v4
 
@@ -80,8 +84,6 @@ jobs:
 
       - name: Retour arrière
         if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
-        env:
-          NAMESPACE: judilibre-scw-dev-par1-dev
         run: .github/scripts/rollback.sh
 
   prod_par1:
@@ -89,6 +91,8 @@ jobs:
     if: inputs.target == 'prod-par1' || inputs.target == 'prod-les-deux'
     runs-on: ubuntu-latest
     environment: scw-prod-par1
+    env:
+      NAMESPACE: judilibre-scw-prod-par1-master
     steps:
       - uses: actions/checkout@v4
 
@@ -124,8 +128,6 @@ jobs:
 
       - name: Retour arrière
         if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
-        env:
-          NAMESPACE: judilibre-scw-prod-par1-master
         run: .github/scripts/rollback.sh
 
   prod_par2:
@@ -139,6 +141,8 @@ jobs:
        (inputs.target == 'prod-les-deux' && needs.prod_par1.result == 'success'))
     runs-on: ubuntu-latest
     environment: scw-prod-par2
+    env:
+      NAMESPACE: judilibre-scw-prod-par2-master
     steps:
       - uses: actions/checkout@v4
 
@@ -174,6 +178,4 @@ jobs:
 
       - name: Retour arrière
         if: failure() && (steps.deploiement.outcome == 'failure' || steps.controle.outcome == 'failure')
-        env:
-          NAMESPACE: judilibre-scw-prod-par2-master
         run: .github/scripts/rollback.sh
