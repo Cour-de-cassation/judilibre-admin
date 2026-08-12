@@ -5,7 +5,7 @@ name: Déploiement sur Scaleway
 # ailleurs ne retient que le commit de cette chaîne, jamais l'image livrée : sans
 # cette ligne, retrouver ce qui est parti sur un cluster oblige à ouvrir les runs
 # un par un.
-run-name: 🚀 ${{ inputs.target }} ← ${{ inputs.image }} (par @${{ github.actor }})
+run-name: 🚀 ${{ inputs.target }} ← ${{ inputs.image || 'image du commit' }} (par @${{ github.actor }})
 
 # Déploie judilibre-admin sur les trois clusters publics, en exécutant le rôle
 # Ansible de ce dépôt — le même que sur les clusters privés.
@@ -20,14 +20,17 @@ on:
   workflow_dispatch:
     inputs:
       image:
-        # Référence complète, pour pouvoir redéployer à l'identique l'image
-        # déjà en service : changer la chaîne et le code en même temps rendrait
-        # un échec inexploitable. Le cas courant est l'image construite par
-        # tag.yml ; les images antérieures vivent sous une autre organisation.
-        # Une référence erronée donne un ImagePullBackOff, donc un rollout en
-        # échec, un ancien pod toujours en service, et un retour arrière.
-        description: "Référence complète de l'image (ex. judilibre/judilibre-admin:0.0.7)"
-        required: true
+        # Laissé vide, le workflow déploie l'image du commit sur lequel il
+        # tourne, en la construisant si elle n'est pas déjà publiée.
+        #
+        # Renseigné, il déploie cette référence sans rien construire : c'est ce
+        # qui permet de redéployer une image déjà en service pour éprouver la
+        # chaîne seule, ou de revenir à une version antérieure — celles-ci
+        # vivant sous une autre organisation. Une référence erronée donne un
+        # ImagePullBackOff, donc un rollout en échec, un ancien pod toujours en
+        # service, et un retour arrière.
+        description: "Référence complète de l'image — vide pour celle du commit"
+        required: false
         type: string
       target:
         description: "Cluster visé"
@@ -63,7 +66,6 @@ jobs:
     # même namespace, et deux déclarations finiraient par diverger.
     env:
       NAMESPACE: judilibre-scw-dev-par1-dev
-      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +83,13 @@ jobs:
           KUBE_URL: ${{ secrets.KUBE_SCW_URL }}
           KUBE_USER: ${{ secrets.KUBE_SCW_USER }}
         run: .github/scripts/build-kubeconfig.sh
+
+      - name: Image
+        env:
+          INPUT_IMAGE: ${{ inputs.image }}
+          DOCKERHUB_USERNAME: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.JUDILIBRE_DOCKERHUB_TOKEN }}
+        run: .github/scripts/resolve-image.sh
 
       - name: Déploiement
         id: deploiement
@@ -107,7 +116,6 @@ jobs:
     environment: scw-prod-par1
     env:
       NAMESPACE: judilibre-scw-prod-par1-master
-      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -125,6 +133,13 @@ jobs:
           KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR1 }}
           KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR1 }}
         run: .github/scripts/build-kubeconfig.sh
+
+      - name: Image
+        env:
+          INPUT_IMAGE: ${{ inputs.image }}
+          DOCKERHUB_USERNAME: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.JUDILIBRE_DOCKERHUB_TOKEN }}
+        run: .github/scripts/resolve-image.sh
 
       - name: Déploiement
         id: deploiement
@@ -157,7 +172,6 @@ jobs:
     environment: scw-prod-par2
     env:
       NAMESPACE: judilibre-scw-prod-par2-master
-      IMAGE: ${{ inputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -175,6 +189,13 @@ jobs:
           KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR2 }}
           KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR2 }}
         run: .github/scripts/build-kubeconfig.sh
+
+      - name: Image
+        env:
+          INPUT_IMAGE: ${{ inputs.image }}
+          DOCKERHUB_USERNAME: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.JUDILIBRE_DOCKERHUB_TOKEN }}
+        run: .github/scripts/resolve-image.sh
 
       - name: Déploiement
         id: deploiement
