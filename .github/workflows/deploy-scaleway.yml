@@ -23,13 +23,22 @@ name: Déploiement sur Scaleway
 on:
   workflow_dispatch:
     inputs:
-      version:
-        # Les images publiées par tag.yml portent le nom du tag Git : 0.0.7 au
-        # 29/06/2026. Attention, cette numérotation est plus basse que celle de
-        # package.json (0.1.4) et que celle des images historiques
-        # d'opendatajustice (0.1.4-<empreinte>) — un déploiement fait donc
-        # reculer le numéro affiché. À corriger côté convention de tags.
-        description: "Étiquette de l'image sur Docker Hub judilibre/judilibre-admin (ex. 0.0.7)"
+      image:
+        # Référence complète, et non un numéro accolé à une organisation figée :
+        # le premier passage en production doit pouvoir poser l'image DÉJÀ en
+        # service, qui vit sous opendatajustice. Déployer la chaîne et le code
+        # en même temps rendrait un échec inexploitable — on ne saurait pas
+        # lequel des deux est en cause.
+        #
+        #   judilibre/judilibre-admin:0.0.7              cas courant, construit
+        #                                                par tag.yml
+        #   opendatajustice/judilibre-admin:0.1.4-20f7c3 ce que tourne la
+        #                                                production aujourd'hui
+        #   opendatajustice/judilibre-admin:0.1.4-5e0d1e ce que tourne dev-par1
+        #
+        # Une référence erronée donne un ImagePullBackOff : le rollout échoue,
+        # l'ancien pod continue de servir, et le retour arrière s'exécute.
+        description: "Référence complète de l'image (ex. judilibre/judilibre-admin:0.0.7)"
         required: true
         type: string
       target:
@@ -77,7 +86,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_dev_par1
 
       # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
@@ -122,7 +131,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par1
 
       # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
@@ -175,7 +184,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          IMAGE: ${{ secrets.JUDILIBRE_DOCKERHUB_USERNAME }}/judilibre-admin:${{ inputs.version }}
+          IMAGE: ${{ inputs.image }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par2
 
       # Les sondes du pod ne prouvent que sa santé interne. Ce contrôle-ci passe
