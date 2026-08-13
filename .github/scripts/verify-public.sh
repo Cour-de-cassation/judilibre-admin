@@ -47,7 +47,11 @@ statut=$?
 set -e
 
 if [ "${statut}" -eq 0 ] && [ "${code}" -ge 200 ] && [ "${code}" -lt 300 ]; then
-    if grep -q 'disponible' "${corps}"; then
+    # La paire complète, pas le seul mot : l'application répond « indisponible »
+    # quand elle ne joint pas son Elasticsearch, et cette chaîne contient
+    # « disponible ». Chercher le mot seul revient à déclarer le succès sur
+    # l'échec qu'on cherche justement à détecter.
+    if grep -qE '"result"[[:space:]]*:[[:space:]]*"disponible"' "${corps}"; then
         echo "✅ ${APP_HOST} répond, et se déclare disponible"
         exit 0
     fi
@@ -97,7 +101,7 @@ if [ "${statut}" -ne 0 ]; then
     exit 1
 fi
 
-if printf '%s' "${reponse}" | grep -q 'disponible'; then
+if printf '%s' "${reponse}" | grep -qE '"result"[[:space:]]*:[[:space:]]*"disponible"'; then
     echo "✅ l'application répond et se déclare disponible, vue du cluster"
     echo "   ⚠️  Ingress, certificat et LoadBalancer n'ont pas été traversés."
     exit 0
