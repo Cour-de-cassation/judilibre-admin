@@ -16,7 +16,7 @@ api.get(`/${route}`, async (req, res) => {
   }
 });
 
-async function getHealthcheck(query) {
+async function getHealthcheck() {
   const ping = await Elastic.client.ping({});
   if (ping.body === true && ping.statusCode === 200) {
     return {

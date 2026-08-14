@@ -81,7 +81,10 @@ const importInputSchema = joi.object({
         contested: joi.object(),
         forward: joi.object(),
         timeline: joi.array(),
-        solution_alt: joi.string().allow('').messages({ 'decision.solution_alt': 'Decision.solution_alt must be a string.' }),
+        solution_alt: joi
+          .string()
+          .allow('')
+          .messages({ 'decision.solution_alt': 'Decision.solution_alt must be a string.' }),
         summary: joi.string().allow('').messages({ 'decision.summary': 'Decision.summary must be a string.' }),
         bulletin: joi.string().allow('').messages({ 'decision.bulletin': 'Decision.bulletin must be a string.' }),
         files: joi.array(),
