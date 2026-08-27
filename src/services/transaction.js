@@ -31,7 +31,7 @@ function fromElasticResultTotransaction({ _id, result }) {
 // DECISION FORMATS (OUTPUT)
 
 function TransactionToHistoricized(transactionsItems, inputs) {
-  return transactionsItems.map((item, iterator) => ({ item, input: inputs[iterator] }))
+  return transactionsItems.map((item, iterator) => ({ item, input: inputs[iterator] }));
 }
 
 // EXPORTS

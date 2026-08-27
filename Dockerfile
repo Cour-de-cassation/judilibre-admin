@@ -1,7 +1,7 @@
 #######################
 # Step 1: Base target #
 #######################
-FROM node:20-alpine3.20 AS base
+FROM node:24-alpine3.20 AS base
 ARG http_proxy
 ARG https_proxy
 ARG no_proxy
@@ -18,40 +18,8 @@ RUN if [ ! -z "$http_proxy" ] ; then \
    fi ; \
    [ -z "$npm_registry" ] || npm config set registry=$npm_registry
 
-################################
-# Step 2: "development" target #
-################################
-FROM base AS development
-ARG NPM_FIX
-ARG NPM_VERBOSE
-ARG APP_ID
-ARG API_PORT
-ENV APP_ID=${APP_ID}
-ENV API_PORT=${API_PORT}
-ENV NPM_CONFIG_LOGLEVEL=debug
-
-WORKDIR /home/node/
-USER node
-
-COPY package.json ./
-
-RUN if [ -z "${NPM_VERBOSE}" ]; then\
-      npm install;  \
-    else \
-      npm install --verbose; \
-    fi
-
-VOLUME /${APP_ID}/src
-
-COPY jestconfig.json .eslintrc.json ./
-
-# Expose the listening port of your app
-EXPOSE ${API_PORT}
-
-CMD ["npm","run", "dev"]
-
 ###############################
-# Step 3: "production" target #
+# Step 2: "production" target #
 ###############################
 FROM base AS production
 ARG NPM_AUDIT_DRY_RUN
