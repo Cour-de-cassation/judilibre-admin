@@ -2,7 +2,7 @@ name: Clone data (dev)
 
 on:
   schedule:
-    - cron: "2 14 * * *"
+    - cron: "2 4 * * *"
   workflow_dispatch:
 
 jobs:
