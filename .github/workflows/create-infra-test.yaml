@@ -1,8 +1,6 @@
 name: Create whole sandbox environment (PRA test)
 
 on:
-  schedule:
-    - cron: "0 7 * * 6"
   workflow_dispatch:
 
 jobs:
@@ -23,6 +21,7 @@ jobs:
         run: ./scripts/init_deps.sh
         env:
           GIT_BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       - name: get version
         run: echo "##[set-output name=version;]$(./scripts/version.sh)"
         id: extract_version
