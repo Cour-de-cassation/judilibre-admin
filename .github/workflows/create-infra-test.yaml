@@ -28,6 +28,14 @@ jobs:
       - name: set random DNS
         run: echo "##[set-output name=dns;]$(openssl rand -hex 4)"
         id: extract_dns
+      - name: 🐞 debug Scaleway IP API (temporaire)
+        run: |
+          echo ${ENV_SCW_SBX_PAR1} | sed "s/\s\s*/\n/g" > .env-debug
+          set -a; source .env-debug; set +a
+          echo "zone=${SCW_ZONE}"
+          curl -s "https://api.scaleway.com/lb/v1/zones/${SCW_ZONE}/ips?project_id=${SCW_KUBE_PROJECT_ID}" \
+            -H "X-Auth-Token: ${SCW_KUBE_SECRET_TOKEN}" | jq '{total_count, message, type}'
+          rm -f .env-debug
       - name: ☸️ create_environment
         id: create_environment
         run: |
