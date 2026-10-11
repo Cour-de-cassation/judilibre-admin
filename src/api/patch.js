@@ -3,8 +3,6 @@
  */
 
 require('../modules/env');
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const api = express.Router();
 const { checkSchema, validationResult } = require('express-validator');
