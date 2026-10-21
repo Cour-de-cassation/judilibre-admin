@@ -7,14 +7,13 @@ export KUBE_SRC=${DEPS_SRC}/k8s
 
 # clone
 if [ ! -d "${SCRIPTS_SRC}" ];then
-    if ! (git clone https://${GIT_TOKEN}@github.com/Cour-de-cassation/${GIT_OPS} > /dev/null 2>&1); then
-        echo -e "\e[31m❌ init failed, couldn't clone git ${GIT_OPS} repository \e[0m" && exit 1;
-        if [ "${GIT_BRANCH}" == "master" ]; then
-            cd ${SCRIPTS_SRC};
-            git checkout master;
-            cd ..;
-        fi;
-    fi;
+    [ "${#GIT_TOKEN}" -gt 10 ] || { echo -e "\e[31m❌ GIT_TOKEN vide ou invalide (length=${#GIT_TOKEN}) \e[0m"; exit 1; }
+    for i in 1 2 3; do
+        git clone https://${GIT_TOKEN}@github.com/Cour-de-cassation/${GIT_OPS} > /dev/null && break
+        echo "→ Clone échoué (tentative $i/3), nouvel essai dans 10s..."
+        rm -rf ${GIT_OPS}; sleep 10
+    done
+    [ -d "${SCRIPTS_SRC}" ] || { echo -e "\e[31m❌ init failed, couldn't clone git ${GIT_OPS} repository \e[0m"; exit 1; }
 fi;
 
 # scripts
