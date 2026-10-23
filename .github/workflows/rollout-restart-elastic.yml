@@ -10,6 +10,9 @@ jobs:
     name: 🔃 Restart elastic cluster on dev
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    concurrency:
+      group: es-dev
+      cancel-in-progress: false
     env:
       ACME: acme
       APP_GROUP: judilibre
@@ -70,6 +73,9 @@ jobs:
     name: 🔃 Restart elastic cluster on prod par1
     if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
     runs-on: ubuntu-latest
+    concurrency:
+      group: es-prod-par1
+      cancel-in-progress: false
     env:
       ACME: acme
       APP_GROUP: judilibre
@@ -131,6 +137,9 @@ jobs:
     needs: restart-elastic-scw-prod-par1
     if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
     runs-on: ubuntu-latest
+    concurrency:
+      group: es-prod-par2
+      cancel-in-progress: false
     env:
       ACME: acme
       APP_GROUP: judilibre
