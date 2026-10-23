@@ -5,6 +5,10 @@ on:
     - cron: "2 8,11,14,17,20 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: es-prod-par1
+  cancel-in-progress: false
+  
 jobs:
   clone-data-to-slave:
     name: 🔄 Clone data from prod par-2 to prod par-1
