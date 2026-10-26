@@ -60,6 +60,44 @@ judilibre_admin_ingress_hosts: []
 # Vide par défaut : le rôle refuse alors de créer l'Ingress.
 judilibre_admin_ingress_whitelist: ""
 
+# Accès à Elasticsearch (utilisateur, rôle, URL de connexion) et mot de passe
+# HTTP, gérés par le rôle là où il en est la source de vérité (plateforme
+# publique). En privé, ces valeurs passent par judilibre_admin_secrets.
+judilibre_admin_manage_es_access: false
+
+# ── Accès Elasticsearch ───────────────────────────────────────────────────────
+# Utilisé seulement si judilibre_admin_manage_es_access est vrai. Les mots de
+# passe (judilibre_admin_es_password, judilibre_admin_http_password) viennent
+# du vault du cluster, sans valeur de repli.
+judilibre_admin_es_cluster_name: judilibre
+judilibre_admin_es_host: "{{ judilibre_admin_es_cluster_name }}-es-http"
+judilibre_admin_es_username: judilibre_admin
+judilibre_admin_es_role_name: judilibre_admin
+judilibre_admin_es_user_secret: "{{ judilibre_admin_app_id }}-es-user"
+judilibre_admin_es_role_secret: "{{ judilibre_admin_app_id }}-es-role"
+judilibre_admin_es_auth_secret: "{{ judilibre_admin_app_id }}-es-path-with-auth"
+judilibre_admin_http_passwd_secret: "{{ judilibre_admin_app_id }}-http-passwd"
+
+# Essais espacés de 10 s avant de renoncer à basculer l'URL de connexion.
+judilibre_admin_es_auth_retries: 30
+
+# Droits strictement nécessaires à l'application : import et suppression en
+# bulk, update et updateByQuery, gestion des templates (refresh_template).
+# Ni suppression d'index, ni manage, ni gestion de la sécurité.
+judilibre_admin_es_role_definition:
+  cluster:
+    - monitor
+    - manage_index_templates
+  indices:
+    - names:
+        - "{{ judilibre_admin_elastic_index | regex_replace('_[0-9]+$', '') }}_*"
+        - "{{ judilibre_admin_transaction_index }}"
+      privileges:
+        - read
+        - write
+        - create_index
+        - view_index_metadata
+
 # ── Injection de configuration ────────────────────────────────────────────────
 # Par défaut, un ConfigMap et un Secret injectés en bloc par envFrom. Là où les
 # valeurs viennent de Secrets préexistants, extra_env les référence clé par clé,
@@ -82,10 +120,15 @@ judilibre_admin_env_from: >-
 
 # Les empreintes ne valent que si le rôle gère lui-même le ConfigMap et le
 # Secret ; ailleurs, elles porteraient sur des variables inexistantes.
+# Celle de l'accès Elasticsearch redémarre l'application quand un mot de passe
+# change : sans elle, le pod garderait les anciennes valeurs.
 judilibre_admin_pod_annotations: >-
-  {{ {'checksum/config': judilibre_admin_config | to_json(sort_keys=true) | hash('sha1'),
-      'checksum/secret': judilibre_admin_secrets | to_json(sort_keys=true) | hash('sha1')}
-     if judilibre_admin_manage_config else {} }}
+  {{ ({'checksum/config': judilibre_admin_config | to_json(sort_keys=true) | hash('sha1'),
+       'checksum/secret': judilibre_admin_secrets | to_json(sort_keys=true) | hash('sha1')}
+      if judilibre_admin_manage_config else {})
+     | combine({'checksum/es-access': [judilibre_admin_es_username, judilibre_admin_es_password,
+                                       judilibre_admin_http_password] | to_json | hash('sha1')}
+               if judilibre_admin_manage_es_access else {}) }}
 
 # Regroupées en une variable : un environnement peut n'en déclarer aucune, un
 # dict vide se rendant en `resources: {}` que l'API accepte sans rien appliquer.
