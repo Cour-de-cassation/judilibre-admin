@@ -2,3 +2,9 @@
 # Cluster scw-prod-par1 — production, premier site.
 # Exposé sur admin.prod-par1.judilibre.io.
 judilibre_admin_namespace: judilibre-scw-prod-par1-master
+
+judilibre_admin_ingress_hosts:
+  - host: admin.prod-par1.judilibre.io
+    tls_secret: judilibre-admin-cert-acme
+  - host: admin.judilibre.io
+    tls_secret: judilibre-admin-alter-cert-acme

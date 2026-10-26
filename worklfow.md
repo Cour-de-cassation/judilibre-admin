@@ -80,9 +80,11 @@ précédente.
 Comme un même commit donne une même étiquette, déployer `dev-par1` puis les deux
 sites de production depuis ce commit livre exactement le même artefact.
 
-**Périmètre** : namespace, Service et Deployment. Les autres objets d'un cluster —
-Ingress, Secrets, Elasticsearch, LoadBalancer, certificats — sont créés par
-`judilibre-ops`.
+**Périmètre** : namespace, Service, Deployment et Ingress. La whitelist IP de
+l'Ingress n'est pas dans ce dépôt public : elle est lue dans `judilibre-ops`
+(`scripts/whitelist-admin.sh`) à chaque déploiement, ce qui demande le secret
+`GIT_TOKEN`. Les autres objets d'un cluster — Secrets, Elasticsearch,
+LoadBalancer, certificats — sont créés par `judilibre-ops`.
 
 Les trois environnements GitHub `scw-dev-par1`, `scw-prod-par1` et `scw-prod-par2`
 portent les règles de déploiement. Les deux environnements de production

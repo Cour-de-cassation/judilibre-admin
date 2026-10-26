@@ -12,9 +12,9 @@ run-name: 🚀 ${{ inputs.target }} ← ${{ inputs.image || 'image du commit' }}
 #
 # Manuel : un déploiement en production ne part pas tout seul.
 #
-# Périmètre : namespace, Service et Deployment. Le reste des objets d'un cluster
-# — Ingress, Secrets, Elasticsearch, LoadBalancer, certificats — est créé par
-# judilibre-ops, via create_environment.sh.
+# Périmètre : namespace, Service, Deployment et Ingress (avec sa whitelist IP).
+# Le reste des objets d'un cluster — Secrets, Elasticsearch, LoadBalancer,
+# certificats — est créé par judilibre-ops, via create_environment.sh.
 
 on:
   workflow_dispatch:
@@ -96,6 +96,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: .github/scripts/deploy-scaleway.sh scw_dev_par1
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
@@ -146,6 +147,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par1
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.
@@ -202,6 +204,7 @@ jobs:
         id: deploiement
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: .github/scripts/deploy-scaleway.sh scw_prod_par2
 
       # Par l'URL publique : Ingress, certificat, LoadBalancer, authentification.

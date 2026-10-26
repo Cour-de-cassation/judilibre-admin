@@ -16,9 +16,14 @@ ansible_python_interpreter: "{{ ansible_playbook_python }}"
 judilibre_admin_manage_namespace: true
 judilibre_admin_manage_service: true
 
-# Restent chez judilibre-ops : l'Ingress — nginx ici contre Traefik en privé,
-# avec ses annotations et ses secrets TLS —, les Secrets d'accès, l'Elasticsearch,
-# le LoadBalancer, l'issuer ACME et le DNS.
+# L'Ingress, et donc sa whitelist IP, est géré ici : sans cela, la whitelist
+# n'était plus réappliquée depuis la refonte CI/CD de juillet 2026.
+# La whitelist elle-même n'est pas dans ce dépôt, qui est public : elle vient
+# de judilibre-ops/scripts/whitelist-admin.sh, lu par deploy-scaleway.sh.
+judilibre_admin_manage_ingress: true
+
+# Restent chez judilibre-ops : les certificats TLS (cert-manager), les Secrets
+# d'accès, l'Elasticsearch, le LoadBalancer, l'issuer ACME et le DNS.
 #
 # Aucun ConfigMap n'existe sur ces clusters : la configuration non sensible est
 # posée dans le Deployment, ce que judilibre_admin_extra_env reproduit.
