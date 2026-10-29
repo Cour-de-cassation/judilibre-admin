@@ -8,3 +8,9 @@ judilibre_admin_ingress_hosts:
     tls_secret: judilibre-admin-cert-acme
   - host: admin.judilibre.io
     tls_secret: judilibre-admin-alter-cert-acme
+
+# admin.judilibre.io pointe ici : par1 ne peut renouveler son certificat
+# d'alias que si ce cluster lui relaie les challenges ACME qu'il ne connaît pas.
+judilibre_admin_ingress_acme_relay:
+  - host: admin.judilibre.io
+    target: admin.prod-par1.judilibre.io
