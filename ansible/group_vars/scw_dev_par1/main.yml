@@ -2,3 +2,9 @@
 # Cluster scw-dev-par1 — la recette publique, alimentée par la preprod privée.
 # Exposé sur admin.dev-par1.judilibre.io.
 judilibre_admin_namespace: judilibre-scw-dev-par1-dev
+
+judilibre_admin_ingress_hosts:
+  - host: admin.dev-par1.judilibre.io
+    tls_secret: judilibre-admin-cert-acme
+  - host: admin.dev.judilibre.io
+    tls_secret: judilibre-admin-alter-cert-acme
