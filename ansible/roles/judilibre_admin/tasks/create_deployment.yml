@@ -75,9 +75,14 @@
                 env: "{{ judilibre_admin_extra_env }}"
                 resources: "{{ judilibre_admin_resources }}"
                 # Attention : /healthcheck répond 200 même lorsque
-                # Elasticsearch est injoignable. Ces sondes ne valident donc
-                # aujourd'hui que la réponse du processus Node, pas le bon
-                # fonctionnement de l'application.
+                # Elasticsearch est injoignable ({"status":"indisponible"}).
+                # startup et liveness ne valident donc que la réponse du
+                # processus Node : redémarrer le pod ne réparerait pas
+                # Elasticsearch. Seule la readiness lit le statut : si
+                # Elasticsearch est injoignable, le pod sort du Service (503)
+                # sans être redémarré, et un déploiement ne passe pas.
+                # Le texte complet est requis : "indisponible" contient
+                # aussi "disponible".
                 startupProbe:
                   exec:
                     command:
@@ -101,7 +106,7 @@
                     command:
                       - sh
                       - -c
-                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_admin_app_port }}/healthcheck'
+                      - 'curl -fsS -u "admin:$HTTP_PASSWD" http://localhost:{{ judilibre_admin_app_port }}/healthcheck | grep -q "\"status\":\"disponible\""'
                   periodSeconds: 10
                   timeoutSeconds: 5
                   failureThreshold: 3
