@@ -1,8 +1,8 @@
 name: Clone data (slave)
 
+# Manual only: prod par-1 is kept up to date by sync-data-slave.yaml.
+# Full restore with downtime, run it if the sync reports a drift.
 on:
-  schedule:
-    - cron: "2 8,11,14,17,20 * * *"
   workflow_dispatch:
 
 concurrency:
