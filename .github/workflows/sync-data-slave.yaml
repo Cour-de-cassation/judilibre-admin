@@ -1,0 +1,61 @@
+name: Sync data (slave)
+
+# Incremental sync from prod par-2 to prod par-1, without downtime.
+# Full restore stays available on demand: clone-data-slave.yaml.
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Show what would be synced without writing"
+        type: boolean
+        default: false
+
+# Same group as clone-data-slave: never sync during a full clone.
+concurrency:
+  group: es-prod-par1
+  cancel-in-progress: false
+
+jobs:
+  sync-data-to-slave:
+    name: 🔁 Sync data from prod par-2 to prod par-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APP_GROUP: judilibre
+      ELASTIC_INDEX: judilibre_0
+    steps:
+      - uses: actions/checkout@v4
+      - name: init deps
+        run: ./scripts/init_deps.sh
+        env:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      - name: kubeconfig prod par-2 (source, read only)
+        run: |
+          mkdir -p ${HOME}/.kube
+          envsubst < k8s/kubeconfig.yaml > ${HOME}/.kube/config-par2
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA_PROD_PAR2 }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME_PROD_PAR2 }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN_PROD_PAR2 }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR2 }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR2 }}
+      - name: kubeconfig prod par-1 (destination)
+        run: |
+          envsubst < k8s/kubeconfig.yaml > ${HOME}/.kube/config-par1
+        env:
+          KUBE_CA: ${{ secrets.KUBE_SCW_CA_PROD_PAR1 }}
+          KUBE_NAME: ${{ secrets.KUBE_SCW_NAME_PROD_PAR1 }}
+          KUBE_TOKEN: ${{ secrets.KUBE_SCW_TOKEN_PROD_PAR1 }}
+          KUBE_URL: ${{ secrets.KUBE_SCW_URL_PROD_PAR1 }}
+          KUBE_USER: ${{ secrets.KUBE_SCW_USER_PROD_PAR1 }}
+      - name: 🔁 Sync data ☸️
+        run: ./scripts/sync_incremental.sh
+        env:
+          SRC_KUBECONFIG: /home/runner/.kube/config-par2
+          SRC_NAMESPACE: judilibre-scw-prod-par2-master
+          DST_KUBECONFIG: /home/runner/.kube/config-par1
+          DST_NAMESPACE: judilibre-scw-prod-par1-master
+          SYNC_DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
