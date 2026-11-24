@@ -2,7 +2,8 @@ name: Restart elasticsearch cluster
 
 on:
   schedule:
-    - cron: "0 22 * * *"
+    - cron: "0 2 * * *"
+      timezone: "Europe/Paris"
   workflow_dispatch:
 
 jobs:
@@ -71,7 +72,7 @@ jobs:
           VERSION: ${{ steps.extract_version.outputs.version }}
   restart-elastic-scw-prod-par1:
     name: 🔃 Restart elastic cluster on prod par1
-    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
+    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
     concurrency:
       group: es-prod-par1
@@ -135,7 +136,7 @@ jobs:
   restart-elastic-scw-prod-par2:
     name: 🔃 Restart elastic cluster on prod par2
     needs: restart-elastic-scw-prod-par1
-    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 22 * * *'
+    if: github.ref == 'refs/heads/master' || github.event.schedule == '0 2 * * *'
     runs-on: ubuntu-latest
     concurrency:
       group: es-prod-par2
